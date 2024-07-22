@@ -1,0 +1,15 @@
+import Config
+
+config :logger, :default_formatter,
+  format: {Breakout.Logger, :format},
+  # format: "$time [$level] $message\n\t$metadata\n",
+  metadata: [
+    :error_code,
+    :mfa,
+    :line,
+    :pid,
+    :registered_name,
+    :process_label,
+    :crash_reason,
+    :msg
+  ]
