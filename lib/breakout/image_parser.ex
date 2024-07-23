@@ -7,12 +7,13 @@ defmodule Breakout.ImageParser do
 
   defp do_parse(<<0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, rest::binary>>, acc) do
     IO.inspect("in png header")
+
     do_png_parse(rest, acc)
     |> decompress_png()
     |> reconstruct_png()
   end
 
-  defp do_parse(<<0xff, 0xd8, 0xff, rest::binary>>, acc) do
+  defp do_parse(<<0xFF, 0xD8, 0xFF, rest::binary>>, acc) do
     do_jpg_parse(rest, acc)
   end
 
@@ -145,9 +146,11 @@ defmodule Breakout.ImageParser do
 
   defp do_png_chunk(
          "IHDR",
-         <<width::8*4, height::8*4, depth::8, type::8, compression::8, filter::8, interlace::8>> = data
+         <<width::8*4, height::8*4, depth::8, type::8, compression::8, filter::8, interlace::8>> =
+           data
        ) do
     IO.inspect({width, height, depth, type, compression, filter, interlace})
+
     {:IHDR,
      %{
        width: width,

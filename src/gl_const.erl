@@ -53,6 +53,7 @@ gl_info_log_length() -> ?GL_INFO_LOG_LENGTH.
 
 gl_blend() -> ?GL_BLEND.
 gl_src_alpha() -> ?GL_SRC_ALPHA.
+gl_one() -> ?GL_ONE.
 gl_one_minus_src_alpha() -> ?GL_ONE_MINUS_SRC_ALPHA.
 
 gl_repeat() -> ?GL_REPEAT.

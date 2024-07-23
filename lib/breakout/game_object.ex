@@ -54,14 +54,20 @@ defmodule Breakout.GameObject do
     Sprite.draw(state, name, position, size, rotation, color)
   end
 
-  def check_collision(%__MODULE__{position: {ax, ay}, size: {aw, ah}}, %__MODULE__{position: {bx, by}, size: {bw, bh}}) do
+  def check_collision(%__MODULE__{position: {ax, ay}, size: {aw, ah}}, %__MODULE__{
+        position: {bx, by},
+        size: {bw, bh}
+      }) do
     collision_x = ax + aw >= bx and bx + bw >= ax
     collision_y = ay + ah >= by and by + bh >= ay
 
     collision_x and collision_y
   end
 
-  def check_collision(%{game_object: %{position: ball_position}, radius: radius}, %__MODULE__{size: {w, h}, position: {x, y}}) do
+  def check_collision(%{game_object: %{position: ball_position}, radius: radius}, %__MODULE__{
+        size: {w, h},
+        position: {x, y}
+      }) do
     center = Vec2.add(ball_position, Vec2.new(radius, radius))
 
     {aabb_half_x, aabb_half_y} = aabb_half_extents = Vec2.new(w / 2, h / 2)

@@ -44,6 +44,6 @@ defmodule Breakout.State do
     player: GameObject.new(),
     background_texture: nil,
     ball: BallObject.new(),
-    resources: %{shaders: %{}, textures: %{}},
+    resources: %{shaders: %{}, textures: %{}}
   ]
 end

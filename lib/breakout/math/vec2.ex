@@ -62,7 +62,8 @@ defmodule Breakout.Math.Vec2 do
   def direction(target) do
     target = normalize(target)
 
-    {best_match, _} = @compass
+    {best_match, _} =
+      @compass
       |> Enum.with_index()
       |> Enum.map(fn {direction, index} -> {index, dot(target, direction)} end)
       |> Enum.max_by(fn {_, dot_product} -> dot_product end)

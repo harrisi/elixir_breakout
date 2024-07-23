@@ -8,6 +8,7 @@ defmodule Breakout.Renderer do
   @spec draw(state :: Breakout.State.t()) :: :ok
   def draw(state) do
     IO.inspect("is this called")
+
     case state.resources.textures[:face] do
       {:ok, texture} ->
         t = :erlang.monotonic_time(:millisecond)

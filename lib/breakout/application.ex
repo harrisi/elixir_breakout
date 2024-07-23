@@ -30,8 +30,8 @@ defmodule Breakout.Application do
   end
 
   @impl Application
-  def stop(_state) do
-    IO.inspect("in application stop")
+  def stop(state) do
+    IO.inspect(state, label: "in application stop")
 
     :init.stop()
   end

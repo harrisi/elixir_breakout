@@ -237,49 +237,48 @@ defmodule Breakout.Math.Mat4 do
   end
 
   @spec multiply_mat(mat1 :: t(), mat2 :: t()) :: t()
+  # and is_float(b00) and is_float(b01) and is_float(b02) and is_float(b03)
+  # and is_float(b10) and is_float(b11) and is_float(b12) and is_float(b13)
+  # and is_float(b20) and is_float(b21) and is_float(b22) and is_float(b23)
+  # and is_float(b30) and is_float(b31) and is_float(b32) and is_float(b33)
   def multiply_mat(
         {{a00, a01, a02, a03}, {a10, a11, a12, a13}, {a20, a21, a22, a23}, {a30, a31, a32, a33}},
         {{b00, b01, b02, b03}, {b10, b11, b12, b13}, {b20, b21, b22, b23}, {b30, b31, b32, b33}}
       )
-    when is_float(a00) and is_float(a01) and is_float(a02) and is_float(a03)
-    and is_float(a10) and is_float(a11) and is_float(a12) and is_float(a13)
-    and is_float(a20) and is_float(a21) and is_float(a22) and is_float(a23)
-    and is_float(a30) and is_float(a31) and is_float(a32) and is_float(a33)
-    # and is_float(b00) and is_float(b01) and is_float(b02) and is_float(b03)
-    # and is_float(b10) and is_float(b11) and is_float(b12) and is_float(b13)
-    # and is_float(b20) and is_float(b21) and is_float(b22) and is_float(b23)
-    # and is_float(b30) and is_float(b31) and is_float(b32) and is_float(b33)
+      when is_float(a00) and is_float(a01) and is_float(a02) and is_float(a03) and
+             is_float(a10) and is_float(a11) and is_float(a12) and is_float(a13) and
+             is_float(a20) and is_float(a21) and is_float(a22) and is_float(a23) and
+             is_float(a30) and is_float(a31) and is_float(a32) and is_float(a33) do
+    # Task.async(fn ->
+    {
+      {
+        a00 * b00 + a01 * b10 + a02 * b20 + a03 * b30,
+        a00 * b01 + a01 * b11 + a02 * b21 + a03 * b31,
+        a00 * b02 + a01 * b12 + a02 * b22 + a03 * b32,
+        a00 * b03 + a01 * b13 + a02 * b23 + a03 * b33
+      },
+      {
+        a10 * b00 + a11 * b10 + a12 * b20 + a13 * b30,
+        a10 * b01 + a11 * b11 + a12 * b21 + a13 * b31,
+        a10 * b02 + a11 * b12 + a12 * b22 + a13 * b32,
+        a10 * b03 + a11 * b13 + a12 * b23 + a13 * b33
+      },
+      {
+        a20 * b00 + a21 * b10 + a22 * b20 + a23 * b30,
+        a20 * b01 + a21 * b11 + a22 * b21 + a23 * b31,
+        a20 * b02 + a21 * b12 + a22 * b22 + a23 * b32,
+        a20 * b03 + a21 * b13 + a22 * b23 + a23 * b33
+      },
+      {
+        a30 * b00 + a31 * b10 + a32 * b20 + a33 * b30,
+        a30 * b01 + a31 * b11 + a32 * b21 + a33 * b31,
+        a30 * b02 + a31 * b12 + a32 * b22 + a33 * b32,
+        a30 * b03 + a31 * b13 + a32 * b23 + a33 * b33
+      }
+    }
 
-     do
-      # Task.async(fn ->
-        {
-          {
-            a00 * b00 + a01 * b10 + a02 * b20 + a03 * b30,
-            a00 * b01 + a01 * b11 + a02 * b21 + a03 * b31,
-            a00 * b02 + a01 * b12 + a02 * b22 + a03 * b32,
-            a00 * b03 + a01 * b13 + a02 * b23 + a03 * b33
-          },
-          {
-            a10 * b00 + a11 * b10 + a12 * b20 + a13 * b30,
-            a10 * b01 + a11 * b11 + a12 * b21 + a13 * b31,
-            a10 * b02 + a11 * b12 + a12 * b22 + a13 * b32,
-            a10 * b03 + a11 * b13 + a12 * b23 + a13 * b33
-          },
-          {
-            a20 * b00 + a21 * b10 + a22 * b20 + a23 * b30,
-            a20 * b01 + a21 * b11 + a22 * b21 + a23 * b31,
-            a20 * b02 + a21 * b12 + a22 * b22 + a23 * b32,
-            a20 * b03 + a21 * b13 + a22 * b23 + a23 * b33
-          },
-          {
-            a30 * b00 + a31 * b10 + a32 * b20 + a33 * b30,
-            a30 * b01 + a31 * b11 + a32 * b21 + a33 * b31,
-            a30 * b02 + a31 * b12 + a32 * b22 + a33 * b32,
-            a30 * b03 + a31 * b13 + a32 * b23 + a33 * b33
-          }
-        }
-      # end)
-      # |> Task.await()
+    # end)
+    # |> Task.await()
 
     # {
     #   [

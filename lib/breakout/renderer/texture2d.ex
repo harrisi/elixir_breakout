@@ -54,7 +54,7 @@ defmodule Breakout.Renderer.Texture2D do
         {:error, err} -> Logger.error(err: err, file: file)
       end
 
-      IO.inspect("before parse")
+    IO.inspect("before parse")
 
     {:ok, image} = ImageParser.parse(data)
 

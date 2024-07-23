@@ -16,14 +16,13 @@ defmodule Breakout.Renderer.Sprite do
 
   def draw(
         # %__MODULE__{shader: shader} = sprite,
-        %_{sprite_renderer: %{shader: shader} = sprite, resources: resources},
+        %_{sprite_renderer: %{shader: shader} = sprite, resources: resources} = _state,
         texture,
         {x, y} = _position,
         {width, height} = _size,
         rotate,
         color
       ) do
-
     # shader = resources.shaders[shader] |> IO.inspect(label: "shader")
     texture = resources.textures[texture]
     Shader.use_shader(shader)
