@@ -65,9 +65,9 @@ defmodule Breakout.Game do
 
     particle_shader =
       Shader.init("priv/shaders/particle/vertex.vs", "priv/shaders/particle/fragment.fs")
+    |> Shader.set(~c"projection", projection |> Mat4.flatten(), true)
 
     state = put_in(state.resources.shaders[:particle], particle_shader)
-
     state =
       put_in(
         state.resources.textures[:particle],
@@ -76,13 +76,14 @@ defmodule Breakout.Game do
 
     state = %{
       state
-      | particles:
+      | particle_generator:
           ParticleGenerator.new(
             particle_shader,
             state.resources.textures[:particle],
             500
           )
     }
+      IO.inspect("just made new generator")
 
     state = %Breakout.State{state | sprite_renderer: sprite_renderer}
 
@@ -393,7 +394,7 @@ defmodule Breakout.Game do
   end
 
   @impl :wx_object
-  def handle_info({:update, dt}, state) do
+  def handle_info({:update, dt}, %Breakout.State{} = state) do
     # update game state
     ball = BallObject.move(state.ball, dt, @screen_width)
 
@@ -417,6 +418,12 @@ defmodule Breakout.Game do
       else
         state
       end
+
+    pg = ParticleGenerator.update(state.particle_generator, dt, state.ball.game_object, 2, Vec2.new(state.ball.radius / 2.0, state.ball.radius / 2.0))
+
+    state = %Breakout.State{state |
+      particle_generator: pg
+    }
 
     {:noreply, state}
   end
@@ -526,7 +533,7 @@ defmodule Breakout.Game do
     {:noreply, state}
   end
 
-  def handle_info(:render, state) do
+  def handle_info(:render, %Breakout.State{} = state) do
     :wx.batch(fn ->
       :gl.clearColor(0.0, 0.0, 0.0, 1.0)
       :gl.clear(:gl_const.gl_color_buffer_bit())
@@ -544,6 +551,7 @@ defmodule Breakout.Game do
         level = state.levels |> elem(state.level)
         GameLevel.draw(level, state.sprite_renderer, state)
         GameObject.draw(state.player, :paddle, state.sprite_renderer, state)
+        ParticleGenerator.draw(state.particle_generator)
         GameObject.draw(state.ball.game_object, :face, state.sprite_renderer, state)
       end
 

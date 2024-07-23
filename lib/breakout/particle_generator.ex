@@ -43,29 +43,42 @@ defmodule Breakout.ParticleGenerator do
   def update(pg, dt, object, new_particles, offset) do
     generator =
       Enum.reduce(1..new_particles, pg, fn _, acc ->
-        unused_particle = first_unused_particle(acc)
+        unused_particle = first_unused_particle(acc) # |> IO.inspect(label: "first unused")
         respawn_particle(acc, unused_particle, object, offset)
       end)
 
-    generator =
-      Enum.reduce(0..(generator.amount - 1)//1, generator, fn i, acc ->
-        particle = Enum.at(acc.particles, i)
-        updated_particle = update_particle(particle, dt)
-        update_in(acc.particles[i], fn _ -> updated_particle end)
-      end)
+    # # generator =
+    # %__MODULE__{pg |
+    #   particles: Enum.map(pg.particles, &(update_particle(&1, dt)))
+    # }
 
-    generator
+    updated_particles = Enum.map(generator.particles, fn particle ->
+      update_particle(particle, dt)
+    end)
+
+    # generator =
+    #   Enum.reduce(0..(generator.amount - 1)//1, generator, fn i, acc ->
+    #     particle = Enum.at(acc.particles, i)
+    #     updated_particle = update_particle(particle, dt)
+    #     updated_particles = List.update_at(acc.particles, i, fn _ -> updated_particle end)
+    #     %__MODULE__{acc |
+    #       particles: updated_particles
+    #     }
+    #   end)
+
+    %{generator | particles: updated_particles}
   end
 
+  # huh.. what
   def update_particle(%Particle{} = particle, dt) do
-    life = particle.life - dt
+    life = particle.life - 0.001 * dt
 
-    if life > 0 do
-      position = Vec2.subtract(particle.position, Vec2.scale(particle.velocity, dt))
-      color = put_elem(particle.color, 3, (particle.color |> elem(3)) - dt * 2.5)
+    if life > 0.0 do
+      position = Vec2.subtract(particle.position, Vec2.scale(particle.velocity, 0.1))
+      color = put_elem(particle.color, 3, (particle.color |> elem(3)) - 0.01)
       %Particle{particle | position: position, color: color, life: life}
     else
-      particle
+      %Particle{particle | life: life}
     end
   end
 
@@ -73,8 +86,9 @@ defmodule Breakout.ParticleGenerator do
     :gl.blendFunc(:gl_const.gl_src_alpha(), :gl_const.gl_one())
     Shader.use_shader(pg.shader)
 
-    Enum.each(pg.particles, fn particle ->
-      if particle.life > 0 do
+    pg.particles
+    |> Enum.each(fn particle ->
+      if particle.life > 0.0 do
         pg.shader
         |> Shader.set(~c"offset", particle.position)
         |> Shader.set(~c"color", particle.color)
@@ -93,30 +107,13 @@ defmodule Breakout.ParticleGenerator do
   defp init(pg) do
     particle_quad =
       Util.make_bits([
-        0,
-        1,
-        0,
-        1,
-        1,
-        0,
-        1,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        1,
-        0,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        0,
-        1,
-        0
+        0.0, 1.0, 0.0, 1.0,
+        1.0, 0.0, 1.0, 0.0,
+        0.0, 0.0, 0.0, 0.0,
+
+        0.0, 1.0, 0.0, 1.0,
+        1.0, 1.0, 1.0, 1.0,
+        1.0, 0.0, 1.0, 0.0
       ])
 
     [vao] = :gl.genVertexArrays(1)
@@ -139,7 +136,7 @@ defmodule Breakout.ParticleGenerator do
       4,
       :gl_const.gl_float(),
       :gl_const.gl_false(),
-      4 * byte_size(<<0::float-native-size(32)>>),
+      4 * byte_size(<<0.0::float-native-size(32)>>),
       0
     )
 
@@ -154,17 +151,28 @@ defmodule Breakout.ParticleGenerator do
   end
 
   defp first_unused_particle(%__MODULE__{particles: particles}) do
-    Enum.find_index(particles, fn p -> p.life <= 0 end) || 0
+    # IO.inspect(particles)
+    index = Enum.find_index(particles, fn p -> p.life <= 0 end) || 0
+
+    if index == 0 do
+      IO.inspect(particles)
+    end
+
+    index
   end
 
   defp respawn_particle(%__MODULE__{} = pg, index, %GameObject{} = object, offset) do
     random = (:rand.uniform(100) - 50) / 10.0
-    r_color = 0.5 + :rand.uniform(100) / 100.0
-    position = Vec2.add(object.position, {random + offset, random + offset})
+    r_color = 0.5 + (:rand.uniform() / 2.0)
+    position = Vec2.add(object.position, Vec2.add(offset, {random, random}))
     color = Vec4.new(r_color, r_color, r_color, 1)
     velocity = Vec2.scale(object.velocity, 0.1)
 
     particle = %Particle{position: position, color: color, life: 1.0, velocity: velocity}
-    update_in(pg.particles[index], fn _ -> particle end)
+    updated_particles = List.update_at(pg.particles, index, fn _ -> particle end)
+    %__MODULE__{
+      pg |
+      particles: updated_particles
+    }
   end
 end

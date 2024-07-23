@@ -1,4 +1,5 @@
 defmodule Breakout.State do
+  alias Breakout.ParticleGenerator
   alias Breakout.Renderer.Shader
   alias Breakout.BallObject
   alias Breakout.Renderer.Texture2D
@@ -25,7 +26,8 @@ defmodule Breakout.State do
           player: GameObject.t(),
           background_texture: Texture2D.t(),
           ball: BallObject.t(),
-          resources: %{shaders: %{atom() => Shader.t()}, textures: %{atom() => Texture2D.t()}}
+          resources: %{shaders: %{atom() => Shader.t()}, textures: %{atom() => Texture2D.t()}},
+          particle_generator: ParticleGenerator.t(),
         }
 
   defstruct [
@@ -44,6 +46,7 @@ defmodule Breakout.State do
     player: GameObject.new(),
     background_texture: nil,
     ball: BallObject.new(),
-    resources: %{shaders: %{}, textures: %{}}
+    resources: %{shaders: %{}, textures: %{}},
+    particle_generator: nil,
   ]
 end
