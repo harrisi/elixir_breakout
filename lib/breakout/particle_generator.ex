@@ -152,13 +152,7 @@ defmodule Breakout.ParticleGenerator do
 
   defp first_unused_particle(%__MODULE__{particles: particles}) do
     # IO.inspect(particles)
-    index = Enum.find_index(particles, fn p -> p.life <= 0 end) || 0
-
-    if index == 0 do
-      IO.inspect(particles)
-    end
-
-    index
+    Enum.find_index(particles, fn p -> p.life <= 0 end) || 0
   end
 
   defp respawn_particle(%__MODULE__{} = pg, index, %GameObject{} = object, offset) do

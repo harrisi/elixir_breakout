@@ -36,7 +36,7 @@ defmodule Breakout.Renderer.Sprite do
       |> Mat4.scale_vec(Vec3.new(width, height, 1))
       |> Mat4.transpose()
 
-    Shader.set(shader, ~c"model", model |> Mat4.flatten())
+    Shader.set(shader, ~c"model", [model |> Mat4.flatten()])
     Shader.set(shader, ~c"spriteColor", color)
 
     :gl.activeTexture(:gl_const.gl_texture0())

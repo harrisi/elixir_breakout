@@ -3,6 +3,7 @@ defmodule Breakout.Game do
 
   import Breakout.WxRecords
 
+  alias Breakout.Renderer.PostProcessor
   alias Breakout.ParticleGenerator
   alias Breakout.{BallObject, GameObject, GameLevel}
   alias Breakout.Renderer
@@ -44,6 +45,7 @@ defmodule Breakout.Game do
 
     state = %Breakout.State{
       t: :erlang.monotonic_time(:millisecond),
+      start_seconds: :erlang.monotonic_time(),
       dt: 1,
       window: window,
       width: @screen_width,
@@ -53,10 +55,10 @@ defmodule Breakout.Game do
     projection = Mat4.ortho(0.0, state.width + 0.0, state.height + 0.0, 0.0, -1.0, 1.0)
 
     sprite_shader =
-      Shader.init("priv/shaders/vertex.vs", "priv/shaders/fragment.fs")
+      Shader.init("priv/shaders/sprite/vertex.vs", "priv/shaders/sprite/fragment.fs")
       |> Shader.use_shader()
       |> Shader.set(~c"image", 0)
-      |> Shader.set(~c"projection", projection |> Mat4.flatten())
+      |> Shader.set(~c"projection", [projection |> Mat4.flatten()])
 
     # |> ResourceManager.put_shader(:sprite)
     # state = %Breakout.State{state | resources}
@@ -65,7 +67,7 @@ defmodule Breakout.Game do
 
     particle_shader =
       Shader.init("priv/shaders/particle/vertex.vs", "priv/shaders/particle/fragment.fs")
-    |> Shader.set(~c"projection", projection |> Mat4.flatten(), true)
+    |> Shader.set(~c"projection", [projection |> Mat4.flatten()], true)
 
     state = put_in(state.resources.shaders[:particle], particle_shader)
     state =
@@ -161,35 +163,52 @@ defmodule Breakout.Game do
     background = state.resources.textures[:background]
 
     state = %Breakout.State{state | background_texture: background}
+
+    IO.inspect("about to make postprocessor")
+
+    pp_shader =
+      Shader.init("priv/shaders/post_processor/vertex.vs", "priv/shaders/post_processor/fragment.fs")
+
+    IO.inspect("here?", label: "before new")
+
+    post_processor = PostProcessor.new(pp_shader, @screen_width * 2, @screen_height * 2)
+
+    IO.inspect("here?", label: "after new")
+
+    state = %Breakout.State{state | post_processor: post_processor}
+
+    IO.inspect("made postprocessor")
+
     send(self(), :loop)
 
     {window.frame, state}
   end
 
-  def do_collisions(state) do
+  def do_collisions(%Breakout.State{} = state) do
     cur_level = state.levels |> elem(state.level)
     ball = state.ball
 
-    {updated_bricks, ball} =
-      Enum.map_reduce(cur_level.bricks, ball, fn box, ball_acc ->
+    {updated_bricks, {ball, shake_time, shake}} =
+      Enum.map_reduce(cur_level.bricks, {ball, state.shake_time, state.post_processor.shake}, fn box, acc ->
+        {ball_acc, shake_time_acc, shake_acc} = acc
         unless box.destroyed do
           {collided, dir, diff} = GameObject.check_collision(ball_acc, box)
 
           if collided do
-            box =
+            {box, shake_time, shake} =
               unless box.is_solid do
-                %{box | destroyed: true}
+                {%{box | destroyed: true}, shake_time_acc, shake_acc}
               else
-                box
+                {box, 0.05, true}
               end
 
             updated_ball = resolve_collision(ball_acc, dir, diff)
-            {box, updated_ball}
+            {box, {updated_ball, shake_time, shake}}
           else
-            {box, ball_acc}
+            {box, {ball_acc, shake_time_acc, shake_acc}}
           end
         else
-          {box, ball_acc}
+          {box, {ball_acc, shake_time_acc, shake_acc}}
         end
       end)
 
@@ -203,9 +222,9 @@ defmodule Breakout.Game do
         {player_w, _player_h} = state.player.size
         {ball_x, _} = ball.game_object.position
 
-        center_board = (player_x + player_w / 2) |> IO.inspect(label: "center_board")
-        distance = (ball_x + ball.radius - center_board) |> IO.inspect(label: "distance")
-        percentage = (distance / (player_w / 2)) |> IO.inspect(label: "percentage")
+        center_board = (player_x + player_w / 2)
+        distance = (ball_x + ball.radius - center_board)
+        percentage = (distance / (player_w / 2))
 
         strength = 2
         old_vel = ball.game_object.velocity
@@ -234,7 +253,12 @@ defmodule Breakout.Game do
         ball
       end
 
-    %Breakout.State{state | levels: put_elem(state.levels, state.level, level), ball: ball}
+      pp = %PostProcessor{
+        state.post_processor |
+        shake: shake,
+      }
+
+    %Breakout.State{state | levels: put_elem(state.levels, state.level, level), ball: ball, shake_time: shake_time, post_processor: pp}
   end
 
   defp resolve_collision(ball, dir, {diff_x, diff_y}) do
@@ -378,8 +402,11 @@ defmodule Breakout.Game do
   def handle_info(:loop, state) do
     t = :erlang.monotonic_time(:millisecond)
     dt = t - state.t
+    seconds = :erlang.monotonic_time()
 
     # IO.puts("time: #{t}; dt: #{dt}")
+
+    state = %Breakout.State{state | elapsed_seconds: (seconds - state.start_seconds) / 1_000_000_000.0}
 
     send(self(), {:update, dt})
 
@@ -425,7 +452,22 @@ defmodule Breakout.Game do
       particle_generator: pg
     }
 
-    {:noreply, state}
+    {shake_time, pp} = if state.shake_time > 0.0 do
+      st = state.shake_time - 0.005
+      pp = if st <= 0.0 do
+        %PostProcessor{state.post_processor |
+          shake: false
+        }
+      else
+        state.post_processor
+      end
+
+      {st, pp}
+    else
+      {state.shake_time, state.post_processor}
+    end
+
+    {:noreply, %Breakout.State{state | shake_time: shake_time, post_processor: pp}}
   end
 
   @impl :wx_object
@@ -539,6 +581,8 @@ defmodule Breakout.Game do
       :gl.clear(:gl_const.gl_color_buffer_bit())
 
       if state.game_state == :active do
+        PostProcessor.begin_render(state.post_processor)
+
         Sprite.draw(
           state,
           :background,
@@ -553,6 +597,9 @@ defmodule Breakout.Game do
         GameObject.draw(state.player, :paddle, state.sprite_renderer, state)
         ParticleGenerator.draw(state.particle_generator)
         GameObject.draw(state.ball.game_object, :face, state.sprite_renderer, state)
+
+        PostProcessor.end_render(state.post_processor)
+        PostProcessor.render(state.post_processor, state.elapsed_seconds)
       end
 
       :wxGLCanvas.swapBuffers(state.window.canvas)

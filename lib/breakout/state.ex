@@ -1,4 +1,5 @@
 defmodule Breakout.State do
+  alias Breakout.Renderer.PostProcessor
   alias Breakout.ParticleGenerator
   alias Breakout.Renderer.Shader
   alias Breakout.BallObject
@@ -28,6 +29,10 @@ defmodule Breakout.State do
           ball: BallObject.t(),
           resources: %{shaders: %{atom() => Shader.t()}, textures: %{atom() => Texture2D.t()}},
           particle_generator: ParticleGenerator.t(),
+          post_processor: PostProcessor.t(),
+          elapsed_seconds: float(),
+          start_seconds: float(),
+          shake_time: float(),
         }
 
   defstruct [
@@ -48,5 +53,9 @@ defmodule Breakout.State do
     ball: BallObject.new(),
     resources: %{shaders: %{}, textures: %{}},
     particle_generator: nil,
+    post_processor: nil,
+    elapsed_seconds: 0.0,
+    start_seconds: 0.0,
+    shake_time: 0.0,
   ]
 end

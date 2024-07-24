@@ -17,7 +17,7 @@ defmodule Breakout.ImageParser do
     do_jpg_parse(rest, acc)
   end
 
-  def do_jpg_parse(rest, acc) do
+  def do_jpg_parse(_rest, _acc) do
     IO.inspect("in jpg")
   end
 
@@ -147,7 +147,7 @@ defmodule Breakout.ImageParser do
   defp do_png_chunk(
          "IHDR",
          <<width::8*4, height::8*4, depth::8, type::8, compression::8, filter::8, interlace::8>> =
-           data
+           _data
        ) do
     IO.inspect({width, height, depth, type, compression, filter, interlace})
 

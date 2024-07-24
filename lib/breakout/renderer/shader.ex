@@ -1,5 +1,6 @@
 defmodule Breakout.Renderer.Shader do
-  # alias Breakout.Util
+  require Logger
+
   @type t :: integer()
   @type shader_type :: non_neg_integer()
   @type uniform_type ::
@@ -47,6 +48,7 @@ defmodule Breakout.Renderer.Shader do
     unless status == :gl_const.gl_true() do
       buf_size = :gl.getShaderiv(shader, :gl_const.gl_info_log_length())
       info_log = :gl.getShaderInfoLog(shader, buf_size)
+      Logger.error(msg: info_log)
       raise "Shader compilation error: #{info_log}"
     end
 
@@ -60,6 +62,7 @@ defmodule Breakout.Renderer.Shader do
     unless status == :gl_const.gl_true() do
       buf_size = :gl.getProgramiv(program, :gl_const.gl_info_log_length())
       info_log = :gl.getProgramInfoLog(program, buf_size)
+      Logger.error(msg: info_log)
       raise "Program linking error: #{info_log}"
     end
 
@@ -92,6 +95,10 @@ defmodule Breakout.Renderer.Shader do
     shader
   end
 
+  def set(shader, name, true, use_shader), do: set(shader, name, 1, use_shader)
+
+  def set(shader, name, false, use_shader), do: set(shader, name, 0, use_shader)
+
   def set(shader, name, {x, y}, use_shader) do
     if use_shader, do: use_shader(shader)
 
@@ -116,20 +123,29 @@ defmodule Breakout.Renderer.Shader do
     shader
   end
 
-  def set(shader, name, value, use_shader) when is_tuple(value) and tuple_size(value) == 16 do
+  def set(shader, name, value, use_shader) when is_list(value) and tuple_size(value |> hd()) == 16 do
     if use_shader, do: use_shader(shader)
 
-    # value = # Util.make_bits(value |> Tuple.to_list)
-
-    # I'm not sure if this is actually needed.
-    # value = value |> Tuple.to_list() |> Enum.map(fn el ->
-    #   <<num::float-native-32>> = <<el::float-native-32>>
-    #   num
-    # end)
-    # |> List.to_tuple()
-
-    :gl.uniformMatrix4fv(:gl.getUniformLocation(shader, name), :gl_const.gl_false(), [value])
+    :gl.uniformMatrix4fv(:gl.getUniformLocation(shader, name), :gl_const.gl_false(), value)
 
     shader
+  end
+
+  def set(shader, name, value, use_shader) when is_list(value) and tuple_size(value |> hd()) == 2 do
+    if use_shader, do: use_shader(shader)
+
+    :gl.uniform2fv(:gl.getUniformLocation(shader, name), value)
+  end
+
+  def set(shader, name, value, use_shader) when is_list(value) and is_integer(value |> hd()) do
+    if use_shader, do: use_shader(shader)
+
+    :gl.uniform1iv(:gl.getUniformLocation(shader, name), value)
+  end
+
+  def set(shader, name, value, use_shader) when is_list(value) and is_float(value |> hd()) do
+    if use_shader, do: use_shader(shader)
+
+    :gl.uniform1fv(:gl.getUniformLocation(shader, name), value)
   end
 end

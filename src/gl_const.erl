@@ -58,3 +58,11 @@ gl_one_minus_src_alpha() -> ?GL_ONE_MINUS_SRC_ALPHA.
 
 gl_repeat() -> ?GL_REPEAT.
 gl_linear() -> ?GL_LINEAR.
+gl_nearest() -> ?GL_NEAREST.
+
+gl_framebuffer() -> ?GL_FRAMEBUFFER.
+gl_renderbuffer() -> ?GL_RENDERBUFFER.
+gl_color_attachment0() -> ?GL_COLOR_ATTACHMENT0.
+gl_framebuffer_complete() -> ?GL_FRAMEBUFFER_COMPLETE.
+gl_read_framebuffer() -> ?GL_READ_FRAMEBUFFER.
+gl_draw_framebuffer() -> ?GL_DRAW_FRAMEBUFFER.

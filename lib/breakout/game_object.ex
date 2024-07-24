@@ -40,12 +40,12 @@ defmodule Breakout.GameObject do
 
   def draw(
         %__MODULE__{
-          sprite: sprite,
+          sprite: _sprite,
           position: position,
           size: size,
           rotation: rotation,
           color: color
-        } = game_object,
+        } = _game_object,
         name,
         _renderer,
         state

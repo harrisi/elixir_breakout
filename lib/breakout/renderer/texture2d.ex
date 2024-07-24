@@ -65,7 +65,7 @@ defmodule Breakout.Renderer.Texture2D do
           texture :: t(),
           width :: non_neg_integer(),
           height :: non_neg_integer(),
-          data :: binary()
+          data :: binary() | 0
         ) :: t()
   def generate(texture, width, height, data) do
     tex = %__MODULE__{texture | width: width, height: height}
