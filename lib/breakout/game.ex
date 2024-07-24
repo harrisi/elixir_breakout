@@ -3,6 +3,7 @@ defmodule Breakout.Game do
 
   import Breakout.WxRecords
 
+  alias Breakout.PowerUp
   alias Breakout.Renderer.PostProcessor
   alias Breakout.ParticleGenerator
   alias Breakout.{BallObject, GameObject, GameLevel}
@@ -104,12 +105,29 @@ defmodule Breakout.Game do
         Texture2D.load("priv/textures/background.png", false)
       )
 
-    # |> ResourceManager.put_texture(:background)
-
     state =
       put_in(state.resources.textures[:block], Texture2D.load("priv/textures/block.png", false))
 
-    # |> ResourceManager.put_texture(:block)
+
+    # state = put_in(state.resources.textures[:speed], Texture2D.load("priv/textures/powerup_speed.png", true))
+    power_up_textures = [
+      :chaos,
+      :confuse,
+      :increase,
+      :passthrough,
+      :speed,
+      :sticky,
+    ]
+    |> Enum.reduce(state.resources.textures, fn el, acc ->
+      put_in(acc[el], Texture2D.load("priv/textures/powerup_#{el}.png", true))
+    end)
+
+    state = %Breakout.State{
+      state |
+      resources: %{state.resources |
+        textures: Map.merge(state.resources.textures, power_up_textures),
+      }
+    }
 
     state =
       put_in(
@@ -650,5 +668,42 @@ defmodule Breakout.Game do
       ),
       @initial_ball_velocity
     )
+  end
+
+  defp should_spawn(chance) do
+    :rand.uniform(chance) == chance
+  end
+
+  @spec spawn_power_ups(state :: Breakout.State.t(), block :: GameObject.t()) :: Breakout.State.t()
+  defp spawn_power_ups(state, block) do
+    state
+    |> maybe_spawn_power_up(:chaos, Vec3.new(0.9, 0.25, 0.25), 15, block, :chaos, 15)
+    |> maybe_spawn_power_up(:confuse, Vec3.new(1, 0.3, 0.3), 15, block, :confuse, 50)
+    |> maybe_spawn_power_up(:increase, Vec3.new(1, 0.6, 0.4), 0, block, :size, 50)
+    |> maybe_spawn_power_up(:passthrough, Vec3.new(0.5, 1, 0.5), 10, block, :pass, 50)
+    |> maybe_spawn_power_up(:speed, Vec3.new(0.5, 0.5, 1), 0, block, :speed, 50)
+    |> maybe_spawn_power_up(:sticky, Vec3.new(1, 0.5, 1), 20, block, :sticky, 50)
+  end
+
+  @spec maybe_spawn_power_up(state :: Breakout.State.t(), type :: PowerUp.power_up_types(), color :: Vec3.t(), duration :: number(), block :: GameObject.t(), texture :: atom(), chance :: non_neg_integer()) :: Breakout.State.t()
+  defp maybe_spawn_power_up(state, type, color, duration, %GameObject{} = block, texture, chance) do
+    if should_spawn(chance) do
+      power_up = PowerUp.new(
+        type,
+        color,
+        duration + 0.0,
+        block.position,
+        state.resources.textures[texture]
+      )
+
+      Map.update(state, :power_ups, [power_up], &[power_up | &1])
+    else
+      state
+    end
+  end
+
+  @spec update_power_ups(state :: Breakout.State.t(), dt :: float()) :: Breakout.State.t()
+  defp update_power_ups(state, dt) do
+
   end
 end

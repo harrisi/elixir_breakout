@@ -1,4 +1,5 @@
 defmodule Breakout.State do
+  alias Breakout.PowerUp
   alias Breakout.Renderer.PostProcessor
   alias Breakout.ParticleGenerator
   alias Breakout.Renderer.Shader
@@ -33,6 +34,7 @@ defmodule Breakout.State do
           elapsed_seconds: float(),
           start_seconds: float(),
           shake_time: float(),
+          power_ups: [PowerUp.t()],
         }
 
   defstruct [
@@ -57,5 +59,6 @@ defmodule Breakout.State do
     elapsed_seconds: 0.0,
     start_seconds: 0.0,
     shake_time: 0.0,
+    power_ups: [],
   ]
 end
