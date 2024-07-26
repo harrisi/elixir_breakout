@@ -253,25 +253,31 @@ defmodule Breakout.Game do
 
     level = %{cur_level | bricks: updated_bricks}
 
-    new_state = Enum.with_index(new_state.power_ups)
-    |> Enum.reduce(new_state, fn {%PowerUp{game_object: %GameObject{}} = power_up, index}, %State{} = acc ->
-      unless power_up.game_object.destroyed do
-        power_up = put_in(power_up.game_object.destroyed, (power_up.game_object.position |> elem(1)) >= @screen_height)
+    new_state =
+      Enum.with_index(new_state.power_ups)
+      |> Enum.reduce(new_state, fn {%PowerUp{game_object: %GameObject{}} = power_up, index},
+                                   %State{} = acc ->
+        unless power_up.game_object.destroyed do
+          power_up =
+            put_in(
+              power_up.game_object.destroyed,
+              power_up.game_object.position |> elem(1) >= @screen_height
+            )
 
-        if GameObject.check_collision(acc.player, power_up.game_object) do
-          acc = activate_power_up(acc, power_up)
-          power_up = put_in(power_up.game_object.destroyed, true)
-          power_up = put_in(power_up.activated, true)
-          power_ups = List.update_at(acc.power_ups, index, fn _ -> power_up end)
-          %State{acc | power_ups: power_ups}
+          if GameObject.check_collision(acc.player, power_up.game_object) do
+            acc = activate_power_up(acc, power_up)
+            power_up = put_in(power_up.game_object.destroyed, true)
+            power_up = put_in(power_up.activated, true)
+            power_ups = List.update_at(acc.power_ups, index, fn _ -> power_up end)
+            %State{acc | power_ups: power_ups}
+          else
+            power_ups = List.update_at(acc.power_ups, index, fn _ -> power_up end)
+            %State{acc | power_ups: power_ups}
+          end
         else
-          power_ups = List.update_at(acc.power_ups, index, fn _ -> power_up end)
-          %State{acc | power_ups: power_ups}
+          acc
         end
-      else
-        acc
-      end
-    end)
+      end)
 
     # for %PowerUp{game_object: %GameObject{} = _} = power_up <- state.power_ups do
     #   unless power_up.game_object.destroyed do
@@ -696,8 +702,6 @@ defmodule Breakout.Game do
         Enum.each(state.power_ups, fn %PowerUp{game_object: %GameObject{}} = power_up ->
           unless power_up.game_object.destroyed do
             GameObject.draw(power_up.game_object, power_up.type, state.sprite_renderer, state)
-          else
-            IO.inspect(power_up, label: "destroyed")
           end
         end)
 
@@ -804,12 +808,13 @@ defmodule Breakout.Game do
   def activate_power_up(%State{} = state, %PowerUp{} = power_up) do
     case power_up.type do
       :speed ->
-        update_in(state.ball.game_object.velocity, &(Vec2.scale(&1, 1.2)))
-        # %State{
-        #   state
-        #   | ball: %BallObject{state.ball | game_object: %GameObject{velocity: Vec2.scale(state.ball.game_object.velocity, 1.2)}}
-        # }
-        # |> IO.inspect(label: "state, activate")
+        update_in(state.ball.game_object.velocity, &Vec2.scale(&1, 1.2))
+
+      # %State{
+      #   state
+      #   | ball: %BallObject{state.ball | game_object: %GameObject{velocity: Vec2.scale(state.ball.game_object.velocity, 1.2)}}
+      # }
+      # |> IO.inspect(label: "state, activate")
 
       :sticky ->
         %State{
@@ -857,42 +862,50 @@ defmodule Breakout.Game do
 
   @spec update_power_ups(state :: State.t(), dt :: float()) :: State.t()
   defp update_power_ups(%State{} = state, dt) do
-    state = Enum.with_index(state.power_ups)
-    |> Enum.reduce(state, fn {%PowerUp{} = power_up, index}, %State{} = acc ->
-      power_up =
-        power_up.game_object.position
-        |> update_in(&(Vec2.add(&1, Vec2.scale(power_up.game_object.velocity, dt / 1_000))))
+    state =
+      Enum.with_index(state.power_ups)
+      |> Enum.reduce(state, fn {%PowerUp{} = power_up, index}, %State{} = acc ->
+        power_up =
+          power_up.game_object.position
+          |> update_in(&Vec2.add(&1, Vec2.scale(power_up.game_object.velocity, dt / 1_000)))
 
-      if power_up.activated do
-        power_up = update_in(power_up.duration, &(&1 - dt))
-        power_up = if power_up.duration <= 0 do
-          put_in(power_up.activated, false)
-        else
-          power_up
-        end
+        if power_up.activated do
+          power_up = update_in(power_up.duration, &(&1 - dt))
 
-        # TODO: this is all fucked up
-        case power_up.type do
-          :sticky ->
-            unless is_other_power_up_active(acc.power_ups, :sticky) do
-              acc = put_in(acc.ball.sticky, false) |> IO.inspect(label: "put in ball")
-              put_in(acc.player.color, Vec3.new(1, 1, 1)) |> IO.inspect(label: "put in color")
+          power_up =
+            if power_up.duration <= 0 do
+              put_in(power_up.activated, false)
+            else
+              power_up
             end
-          _  -> IO.inspect(power_up.type)
+
+          # case power_up.type do
+          #   :sticky ->
+          #     unless is_other_power_up_active(acc.power_ups, :sticky) do
+          #       acc = put_in(acc.ball.sticky, false) |> IO.inspect(label: "put in ball")
+          #       put_in(acc.player.color, Vec3.new(1, 1, 1)) |> IO.inspect(label: "put in color")
+          #     end
+          #   _  -> IO.inspect(power_up.type)
+          # end
+          # updated = List.update_at(acc.power_ups, index, fn _ -> power_up end)
+
+          acc
+        else
+          updated = List.update_at(acc.power_ups, index, fn _ -> power_up end)
+
+          %State{
+            acc
+            | power_ups: updated
+          }
         end
-        # updated = List.update_at(acc.power_ups, index, fn -> power_up)
-        acc
-      else
-        updated = List.update_at(acc.power_ups, index, fn _ -> power_up end)
-        %State{
-          acc |
-          power_ups: updated,
-        }
-      end
-    end)
+      end)
 
     update_in(state.power_ups, fn el ->
-      Enum.filter(el, &(&1.duration <= 0))
+      # IO.inspect(el)
+      # Enum.filter(el, &((not &1.game_object.destroyed) or &1.activated))
+      Enum.filter(el, fn %PowerUp{game_object: %GameObject{}} = power_up ->
+        power_up.activated or not power_up.game_object.destroyed
+      end)
     end)
 
     # for %PowerUp{game_object: %GameObject{}} = power_up <- state.power_ups do
