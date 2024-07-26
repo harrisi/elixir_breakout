@@ -43,7 +43,8 @@ defmodule Breakout.ParticleGenerator do
   def update(pg, dt, object, new_particles, offset) do
     generator =
       Enum.reduce(1..new_particles, pg, fn _, acc ->
-        unused_particle = first_unused_particle(acc) # |> IO.inspect(label: "first unused")
+        # |> IO.inspect(label: "first unused")
+        unused_particle = first_unused_particle(acc)
         respawn_particle(acc, unused_particle, object, offset)
       end)
 
@@ -52,9 +53,10 @@ defmodule Breakout.ParticleGenerator do
     #   particles: Enum.map(pg.particles, &(update_particle(&1, dt)))
     # }
 
-    updated_particles = Enum.map(generator.particles, fn particle ->
-      update_particle(particle, dt)
-    end)
+    updated_particles =
+      Enum.map(generator.particles, fn particle ->
+        update_particle(particle, dt)
+      end)
 
     # generator =
     #   Enum.reduce(0..(generator.amount - 1)//1, generator, fn i, acc ->
@@ -107,13 +109,30 @@ defmodule Breakout.ParticleGenerator do
   defp init(pg) do
     particle_quad =
       Util.make_bits([
-        0.0, 1.0, 0.0, 1.0,
-        1.0, 0.0, 1.0, 0.0,
-        0.0, 0.0, 0.0, 0.0,
-
-        0.0, 1.0, 0.0, 1.0,
-        1.0, 1.0, 1.0, 1.0,
-        1.0, 0.0, 1.0, 0.0
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0
       ])
 
     [vao] = :gl.genVertexArrays(1)
@@ -157,16 +176,17 @@ defmodule Breakout.ParticleGenerator do
 
   defp respawn_particle(%__MODULE__{} = pg, index, %GameObject{} = object, offset) do
     random = (:rand.uniform(100) - 50) / 10.0
-    r_color = 0.5 + (:rand.uniform() / 2.0)
+    r_color = 0.5 + :rand.uniform() / 2.0
     position = Vec2.add(object.position, Vec2.add(offset, {random, random}))
     color = Vec4.new(r_color, r_color, r_color, 1)
     velocity = Vec2.scale(object.velocity, 0.1)
 
     particle = %Particle{position: position, color: color, life: 1.0, velocity: velocity}
     updated_particles = List.update_at(pg.particles, index, fn _ -> particle end)
+
     %__MODULE__{
-      pg |
-      particles: updated_particles
+      pg
+      | particles: updated_particles
     }
   end
 end

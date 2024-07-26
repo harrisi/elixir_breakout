@@ -28,7 +28,15 @@ defmodule Breakout.Math.Vec2 do
 
   @spec normalize(v :: t()) :: t()
   def normalize({x, y} = v) do
-    inv_mag = 1 / magnitude(v)
+    mag = magnitude(v)
+
+    inv_mag =
+      try do
+        1 / mag
+      rescue
+        _ -> 0
+      end
+
     {x * inv_mag, y * inv_mag}
   end
 

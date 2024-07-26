@@ -123,7 +123,8 @@ defmodule Breakout.Renderer.Shader do
     shader
   end
 
-  def set(shader, name, value, use_shader) when is_list(value) and tuple_size(value |> hd()) == 16 do
+  def set(shader, name, value, use_shader)
+      when is_list(value) and tuple_size(value |> hd()) == 16 do
     if use_shader, do: use_shader(shader)
 
     :gl.uniformMatrix4fv(:gl.getUniformLocation(shader, name), :gl_const.gl_false(), value)
@@ -131,7 +132,8 @@ defmodule Breakout.Renderer.Shader do
     shader
   end
 
-  def set(shader, name, value, use_shader) when is_list(value) and tuple_size(value |> hd()) == 2 do
+  def set(shader, name, value, use_shader)
+      when is_list(value) and tuple_size(value |> hd()) == 2 do
     if use_shader, do: use_shader(shader)
 
     :gl.uniform2fv(:gl.getUniformLocation(shader, name), value)

@@ -6,12 +6,16 @@ defmodule Breakout.BallObject do
   @type t :: %__MODULE__{
           game_object: GameObject.t(),
           radius: number(),
-          stuck: boolean()
+          stuck: boolean(),
+          sticky: boolean(),
+          passthrough: boolean()
         }
 
   defstruct game_object: GameObject.new(),
             radius: 1,
-            stuck: true
+            stuck: true,
+            sticky: false,
+            passthrough: false
 
   def new() do
     %__MODULE__{}
@@ -31,10 +35,12 @@ defmodule Breakout.BallObject do
     }
   end
 
+  @spec reset(ball :: t(), position :: Vec2.t(), velocity :: Vec2.t()) :: t()
   def reset(ball, position, velocity) do
     new(position, ball.radius, velocity, ball.game_object.sprite)
   end
 
+  @spec move(ball :: t(), dt :: number(), window_width :: number()) :: t()
   def move(ball, dt, window_width) do
     unless ball.stuck do
       {this_velocity_x, this_velocity_y} = this_velocity = ball.game_object.velocity
@@ -67,11 +73,7 @@ defmodule Breakout.BallObject do
 
       b = new(new_position, ball.radius, new_velocity, ball.game_object.sprite)
 
-      %__MODULE__{ball |
-        game_object: b.game_object,
-        radius: ball.radius,
-        stuck: ball.stuck
-      }
+      %__MODULE__{ball | game_object: b.game_object, radius: ball.radius, stuck: ball.stuck}
     else
       ball
     end

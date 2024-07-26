@@ -34,9 +34,10 @@ defmodule Breakout.State do
           elapsed_seconds: float(),
           start_seconds: float(),
           shake_time: float(),
-          power_ups: [PowerUp.t()],
+          power_ups: [PowerUp.t()]
         }
 
+  @enforce_keys [:power_ups, :ball]
   defstruct [
     # :active | :menu | :win
     game_state: :active,
@@ -59,6 +60,6 @@ defmodule Breakout.State do
     elapsed_seconds: 0.0,
     start_seconds: 0.0,
     shake_time: 0.0,
-    power_ups: [],
+    power_ups: []
   ]
 end

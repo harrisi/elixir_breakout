@@ -11,6 +11,7 @@ defmodule Breakout.Input do
   end
 
   def handler(wx(event: wxKey(type: type, x: _x, y: _y, keyCode: key_code)) = _request, state) do
+    # IO.inspect(key_code, label: type)
     # send(Breakout.Game, {type, key_code})
     :wx_object.cast(Breakout.Game, {type, key_code})
 
