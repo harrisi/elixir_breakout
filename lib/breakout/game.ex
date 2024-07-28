@@ -199,7 +199,10 @@ defmodule Breakout.Game do
 
     IO.inspect("here?", label: "before new")
 
-    post_processor = PostProcessor.new(pp_shader, @screen_width * 2, @screen_height * 2)
+    {scaled_width, scaled_height} = Vec2.new(@screen_width, @screen_height)
+      |> Vec2.scale(:wxWindow.getDPIScaleFactor(window.frame))
+
+    post_processor = PostProcessor.new(pp_shader, trunc(scaled_width), trunc(scaled_height))
 
     IO.inspect("here?", label: "after new")
 
