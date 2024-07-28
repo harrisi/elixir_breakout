@@ -1,7 +1,10 @@
 import Config
 
-config :logger, :default_formatter,
+config :logger,
+  :default_formatter,
   format: {Breakout.Logger, :format},
+  handle_otp_reports: true,
+  handle_sasl_reports: true,
   # format: "$time [$level] $message\n\t$metadata\n",
   metadata: [
     :error_code,
