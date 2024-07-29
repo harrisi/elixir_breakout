@@ -31,8 +31,8 @@ defmodule Breakout.State do
           resources: %{shaders: %{atom() => Shader.t()}, textures: %{atom() => Texture2D.t()}},
           particle_generator: ParticleGenerator.t(),
           post_processor: PostProcessor.t(),
-          elapsed_seconds: float(),
-          start_seconds: float(),
+          elapsed: float(),
+          start: float(),
           shake_time: float(),
           power_ups: [PowerUp.t()]
         }
@@ -57,8 +57,8 @@ defmodule Breakout.State do
     resources: %{shaders: %{}, textures: %{}},
     particle_generator: nil,
     post_processor: nil,
-    elapsed_seconds: 0.0,
-    start_seconds: 0.0,
+    elapsed: 0.0,
+    start: 0.0,
     shake_time: 0.0,
     power_ups: []
   ]

@@ -3,7 +3,6 @@ defmodule Breakout.Game do
 
   import Breakout.WxRecords
 
-  alias Breakout.Player
   alias Breakout.State
   alias Breakout.PowerUp
   alias Breakout.Renderer.PostProcessor
@@ -46,7 +45,7 @@ defmodule Breakout.Game do
 
     state = %State{
       t: :erlang.monotonic_time(:millisecond),
-      start_seconds: :erlang.monotonic_time(),
+      start: :erlang.monotonic_time(),
       dt: 1,
       window: window,
       width: @screen_width,
@@ -199,7 +198,8 @@ defmodule Breakout.Game do
 
     IO.inspect("here?", label: "before new")
 
-    {scaled_width, scaled_height} = Vec2.new(@screen_width, @screen_height)
+    {scaled_width, scaled_height} =
+      Vec2.new(@screen_width, @screen_height)
       |> Vec2.scale(:wxWindow.getDPIScaleFactor(window.frame))
 
     post_processor = PostProcessor.new(pp_shader, trunc(scaled_width), trunc(scaled_height))
@@ -227,7 +227,7 @@ defmodule Breakout.Game do
 
           if collided do
             {box, new_state} =
-              unless box.is_solid do
+              if not box.is_solid do
                 new_box = %{box | destroyed: true}
                 new_state = spawn_power_ups(acc, new_box)
 
@@ -243,7 +243,12 @@ defmodule Breakout.Game do
                 {box, new_state}
               end
 
-            updated_ball = resolve_collision(new_state.ball, dir, diff)
+            # TODO: this allows passing through solid blocks, which is kinda weird.
+            updated_ball = unless new_state.ball.passthrough do
+              resolve_collision(new_state.ball, dir, diff)
+            else
+              new_state.ball
+            end
             new_state = %{new_state | ball: updated_ball}
             {box, new_state}
           else
@@ -272,10 +277,10 @@ defmodule Breakout.Game do
             power_up = put_in(power_up.game_object.destroyed, true)
             power_up = put_in(power_up.activated, true)
             power_ups = List.update_at(acc.power_ups, index, fn _ -> power_up end)
-            %State{acc | power_ups: power_ups}
+            put_in(acc.power_ups, power_ups)
           else
             power_ups = List.update_at(acc.power_ups, index, fn _ -> power_up end)
-            %State{acc | power_ups: power_ups}
+            put_in(acc.power_ups, power_ups)
           end
         else
           acc
@@ -483,28 +488,19 @@ defmodule Breakout.Game do
   end
 
   @impl :wx_object
-  def handle_info(:loop, state) do
+  def handle_info(:loop, %State{} = state) do
     t = :erlang.monotonic_time(:millisecond)
     dt = t - state.t
-    seconds = :erlang.monotonic_time()
-
-    # IO.puts("time: #{t}; dt: #{dt}")
-
-    state = %Breakout.State{
-      state
-      | elapsed_seconds: (seconds - state.start_seconds) / 1_000_000_000.0
-    }
+    now = :erlang.monotonic_time()
+    elapsed = now - state.start
+    state = put_in(state.elapsed, elapsed / :erlang.convert_time_unit(1, :second, :native))
 
     send(self(), {:update, dt})
-
     send(self(), {:process_input, dt})
-
     send(self(), :render)
-
     send(self(), :loop)
-    # Process.send_after(self(), :loop, 8)
 
-    {:noreply, %Breakout.State{state | t: t, dt: dt}}
+    {:noreply, %State{state | t: t, dt: dt}}
   end
 
   @impl :wx_object
@@ -512,14 +508,11 @@ defmodule Breakout.Game do
     # update game state
     ball = BallObject.move(state.ball, dt, @screen_width)
 
-    state = %State{
-      state
-      | ball: ball
-    }
+    state = put_in(state.ball, ball)
 
     state = do_collisions(state)
 
-    {_, ball_y} = ball.game_object.position
+    {_, ball_y} = state.ball.game_object.position
 
     state =
       if ball_y >= @screen_height do
@@ -527,18 +520,10 @@ defmodule Breakout.Game do
         |> reset_level()
         |> reset_player()
         |> reset_ball()
-
-        # %{
-        #   state
-        #   | levels: reset_level(state),
-        #     player: reset_player(state),
-        #     ball: reset_ball(state)
-        # }
       else
         state
       end
 
-    # state = update_in(state.power_ups, fn _ -> update_power_ups(state, dt) end)
     state = update_power_ups(state, dt)
 
     pg =
@@ -550,14 +535,14 @@ defmodule Breakout.Game do
         Vec2.new(state.ball.radius / 2.0, state.ball.radius / 2.0)
       )
 
-    state = %State{state | particle_generator: pg}
+    state = put_in(state.particle_generator, pg)
 
     {shake_time, pp} =
-      if state.shake_time > 0.0 do
+      if state.shake_time > 0 do
         st = state.shake_time - 0.005
 
         pp =
-          if st <= 0.0 do
+          if st <= 0 do
             %PostProcessor{state.post_processor | shake: false}
           else
             state.post_processor
@@ -604,7 +589,7 @@ defmodule Breakout.Game do
                     state.ball.game_object.sprite
                   )
 
-                %BallObject{
+                %BallObject{state.ball |
                   game_object: b.game_object,
                   stuck: state.ball.stuck,
                   radius: state.ball.radius
@@ -645,7 +630,7 @@ defmodule Breakout.Game do
                     state.ball.game_object.sprite
                   )
 
-                %BallObject{
+                %BallObject{state.ball |
                   game_object: b.game_object,
                   stuck: state.ball.stuck,
                   radius: state.ball.radius
@@ -666,7 +651,7 @@ defmodule Breakout.Game do
       if MapSet.member?(state.keys, ~c" " |> hd) do
         %Breakout.State{
           state
-          | ball: %BallObject{
+          | ball: %BallObject{state.ball |
               game_object: state.ball.game_object,
               radius: state.ball.radius,
               stuck: false
@@ -709,7 +694,7 @@ defmodule Breakout.Game do
         end)
 
         PostProcessor.end_render(state.post_processor)
-        PostProcessor.render(state.post_processor, state.elapsed_seconds)
+        PostProcessor.render(state.post_processor, state.elapsed)
       end
 
       :wxGLCanvas.swapBuffers(state.window.canvas)
@@ -738,7 +723,7 @@ defmodule Breakout.Game do
         )
       )
 
-    %State{state | levels: levels}
+    put_in(state.levels, levels)
   end
 
   defp level_name(0), do: "one.lvl"
@@ -749,7 +734,7 @@ defmodule Breakout.Game do
   defp reset_player(%State{} = state) do
     player = %{state.player | position: @player_position, size: Vec2.new(100, 20)}
 
-    %State{state | player: player}
+    put_in(state.player, player)
   end
 
   defp reset_ball(state) do
@@ -763,7 +748,7 @@ defmodule Breakout.Game do
         @initial_ball_velocity
       )
 
-    %State{state | ball: ball}
+    put_in(state.ball, ball)
   end
 
   defp should_spawn(chance) do
@@ -774,12 +759,12 @@ defmodule Breakout.Game do
           Breakout.State.t()
   defp spawn_power_ups(state, block) do
     state
-    |> maybe_spawn_power_up(:chaos, Vec3.new(0.9, 0.25, 0.25), 15, block, :chaos, 5)
-    |> maybe_spawn_power_up(:confuse, Vec3.new(1, 0.3, 0.3), 15, block, :confuse, 5)
-    |> maybe_spawn_power_up(:increase, Vec3.new(1, 0.6, 0.4), 0, block, :increase, 5)
-    |> maybe_spawn_power_up(:passthrough, Vec3.new(0.5, 1, 0.5), 10, block, :passthrough, 5)
-    |> maybe_spawn_power_up(:speed, Vec3.new(0.5, 0.5, 1), 0, block, :speed, 5)
-    |> maybe_spawn_power_up(:sticky, Vec3.new(1, 0.5, 1), 20, block, :sticky, 5)
+    |> maybe_spawn_power_up(:chaos, Vec3.new(0.9, 0.25, 0.25), 15, block, :chaos, 10)
+    |> maybe_spawn_power_up(:confuse, Vec3.new(1, 0.3, 0.3), 15, block, :confuse, 10)
+    |> maybe_spawn_power_up(:increase, Vec3.new(1, 0.6, 0.4), 10, block, :increase, 10)
+    |> maybe_spawn_power_up(:passthrough, Vec3.new(0.5, 1, 0.5), 10, block, :passthrough, 10)
+    |> maybe_spawn_power_up(:speed, Vec3.new(0.5, 0.5, 1), 10, block, :speed, 10)
+    |> maybe_spawn_power_up(:sticky, Vec3.new(1, 0.5, 1), 10, block, :sticky, 10)
   end
 
   @spec maybe_spawn_power_up(
@@ -873,7 +858,8 @@ defmodule Breakout.Game do
           |> update_in(&Vec2.add(&1, Vec2.scale(power_up.game_object.velocity, dt / 1_000)))
 
         if power_up.activated do
-          power_up = update_in(power_up.duration, &(&1 - dt))
+          # TODO: subtract some better amount of `dt` instead
+          power_up = update_in(power_up.duration, &(&1 - dt / 500.0))
 
           power_up =
             if power_up.duration <= 0 do
@@ -882,33 +868,90 @@ defmodule Breakout.Game do
               power_up
             end
 
-          # case power_up.type do
-          #   :sticky ->
-          #     unless is_other_power_up_active(acc.power_ups, :sticky) do
-          #       acc = put_in(acc.ball.sticky, false) |> IO.inspect(label: "put in ball")
-          #       put_in(acc.player.color, Vec3.new(1, 1, 1)) |> IO.inspect(label: "put in color")
-          #     end
-          #   _  -> IO.inspect(power_up.type)
-          # end
-          # updated = List.update_at(acc.power_ups, index, fn _ -> power_up end)
+          updated = List.update_at(acc.power_ups, index, fn _ -> power_up end)
 
-          acc
+          acc = put_in(acc.power_ups, updated)
+
+          # dbg(acc.power_ups)
+
+          unless power_up.activated do
+            case power_up.type do
+              :sticky ->
+                unless is_other_power_up_active(acc.power_ups, :sticky) do
+                  # dbg()
+                  acc = put_in(acc.ball.sticky, false)
+                  put_in(acc.player.color, Vec3.new(1, 1, 1))
+                else
+                  acc
+                end
+
+              :passthrough ->
+                unless is_other_power_up_active(acc.power_ups, :passthrough) do
+                  acc = put_in(acc.ball.passthrough, false)
+                  put_in(acc.ball.game_object.color, Vec3.new(1, 1, 1))
+                else
+                  acc
+                end
+
+              :confuse ->
+                unless is_other_power_up_active(acc.power_ups, :confuse) do
+                  put_in(acc.post_processor.confuse, false)
+                else
+                  acc
+                end
+
+              :chaos ->
+                unless is_other_power_up_active(acc.power_ups, :chaos) do
+                  put_in(acc.post_processor.chaos, false)
+                else
+                  acc
+                end
+
+              _ ->
+                acc
+            end
+
+            # unless is_other_power_up_active(acc.power_ups, power_up.type) do
+            #   case power_up.type do
+            #     :sticky ->
+            #       acc = put_in(acc.ball.sticky, false)
+            #       put_in(acc.player.color, Vec3.new(1, 1, 1))
+
+            #     :passthrough ->
+            #       acc = put_in(acc.ball.passthrough, false)
+            #       put_in(acc.ball.game_object.color, Vec3.new(1, 1, 1))
+
+            #     :confuse ->
+            #       put_in(acc.post_processor.confuse, false)
+
+            #     :chaos ->
+            #       put_in(acc.post_processor.chaos, false)
+
+            #     _ ->
+            #       IO.inspect("some other power up?")
+            #   end
+            # else
+            #   acc
+            # end
+          else
+            acc
+          end
         else
           updated = List.update_at(acc.power_ups, index, fn _ -> power_up end)
 
-          %State{
-            acc
-            | power_ups: updated
-          }
+          put_in(acc.power_ups, updated)
         end
       end)
 
     update_in(state.power_ups, fn el ->
       # IO.inspect(el)
-      # Enum.filter(el, &((not &1.game_object.destroyed) or &1.activated))
-      Enum.filter(el, fn %PowerUp{game_object: %GameObject{}} = power_up ->
-        power_up.activated or not power_up.game_object.destroyed
+      Enum.reject(el, fn %PowerUp{game_object: %GameObject{}} = power_up ->
+        power_up.game_object.destroyed and not power_up.activated
       end)
+
+      # Enum.filter(el, fn %PowerUp{game_object: %GameObject{}} = power_up ->
+      #   power_up.activated or not power_up.game_object.destroyed
+      # end)
     end)
 
     # for %PowerUp{game_object: %GameObject{}} = power_up <- state.power_ups do
@@ -932,6 +975,9 @@ defmodule Breakout.Game do
   end
 
   def is_other_power_up_active(power_ups, type) do
-    Enum.any?(power_ups, &(&1.type == type))
+    power_ups
+    |> Enum.any?(&(&1.activated and &1.type == type))
+
+    # |> dbg()
   end
 end
