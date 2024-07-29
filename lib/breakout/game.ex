@@ -231,11 +231,13 @@ defmodule Breakout.Game do
               end
 
             # TODO: this allows passing through solid blocks, which is kinda weird.
-            updated_ball = unless new_state.ball.passthrough do
-              resolve_collision(new_state.ball, dir, diff)
-            else
-              new_state.ball
-            end
+            updated_ball =
+              unless new_state.ball.passthrough do
+                resolve_collision(new_state.ball, dir, diff)
+              else
+                new_state.ball
+              end
+
             new_state = %{new_state | ball: updated_ball}
             {box, new_state}
           else
@@ -554,10 +556,11 @@ defmodule Breakout.Game do
                     state.ball.game_object.sprite
                   )
 
-                %BallObject{state.ball |
-                  game_object: b.game_object,
-                  stuck: state.ball.stuck,
-                  radius: state.ball.radius
+                %BallObject{
+                  state.ball
+                  | game_object: b.game_object,
+                    stuck: state.ball.stuck,
+                    radius: state.ball.radius
                 }
               else
                 state.ball
@@ -595,10 +598,11 @@ defmodule Breakout.Game do
                     state.ball.game_object.sprite
                   )
 
-                %BallObject{state.ball |
-                  game_object: b.game_object,
-                  stuck: state.ball.stuck,
-                  radius: state.ball.radius
+                %BallObject{
+                  state.ball
+                  | game_object: b.game_object,
+                    stuck: state.ball.stuck,
+                    radius: state.ball.radius
                 }
               else
                 state.ball
@@ -616,10 +620,11 @@ defmodule Breakout.Game do
       if MapSet.member?(state.keys, ~c" " |> hd) do
         %Breakout.State{
           state
-          | ball: %BallObject{state.ball |
-              game_object: state.ball.game_object,
-              radius: state.ball.radius,
-              stuck: false
+          | ball: %BallObject{
+              state.ball
+              | game_object: state.ball.game_object,
+                radius: state.ball.radius,
+                stuck: false
             }
         }
       else

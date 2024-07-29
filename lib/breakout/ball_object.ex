@@ -73,7 +73,8 @@ defmodule Breakout.BallObject do
 
       b = new(new_position, ball.radius, new_velocity, ball.game_object.sprite)
 
-      %__MODULE__{ball | game_object: b.game_object} #, radius: ball.radius, stuck: ball.stuck}
+      # , radius: ball.radius, stuck: ball.stuck}
+      %__MODULE__{ball | game_object: b.game_object}
     else
       ball
     end
