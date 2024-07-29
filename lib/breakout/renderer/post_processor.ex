@@ -31,27 +31,23 @@ defmodule Breakout.Renderer.PostProcessor do
 
   @spec new(shader :: Shader.t(), width :: non_neg_integer(), height :: non_neg_integer()) :: t()
   def new(shader, width, height) do
-    IO.inspect("new start")
-
     pp = %__MODULE__{
       shader: shader,
       width: width,
       height: height
     }
 
-    [msfbo, fbo] = :gl.genFramebuffers(2) |> IO.inspect(label: "genFramebuffers(2)")
-    :gl.isFramebuffer(msfbo) |> IO.inspect(label: "[msfbo] is framebuffer")
-    :gl.isFramebuffer(fbo) |> IO.inspect(label: "[fbo] is framebuffer")
-    [rbo] = :gl.genRenderbuffers(1) |> IO.inspect(label: "genRenderbuffers(1)")
-    :gl.isRenderbuffer(rbo) |> IO.inspect(label: "is renderbuffer")
+    [msfbo, fbo] = :gl.genFramebuffers(2)
+    :gl.isFramebuffer(msfbo)
+    :gl.isFramebuffer(fbo)
+    [rbo] = :gl.genRenderbuffers(1)
+    :gl.isRenderbuffer(rbo)
 
     :gl.bindFramebuffer(:gl_const.gl_framebuffer(), msfbo)
-    |> IO.inspect(label: "[msfbo] bindFramebuffer")
 
     :gl.flush()
 
     :gl.bindRenderbuffer(:gl_const.gl_renderbuffer(), rbo)
-    |> IO.inspect(label: "bindRenderbuffer")
 
     :gl.renderbufferStorageMultisample(
       :gl_const.gl_renderbuffer(),
@@ -60,7 +56,6 @@ defmodule Breakout.Renderer.PostProcessor do
       width,
       height
     )
-    |> IO.inspect(label: "renderbufferStorageMultisample")
 
     :gl.framebufferRenderbuffer(
       :gl_const.gl_framebuffer(),
@@ -68,7 +63,6 @@ defmodule Breakout.Renderer.PostProcessor do
       :gl_const.gl_renderbuffer(),
       rbo
     )
-    |> IO.inspect(label: "framebufferRenderbuffer")
 
     if :gl.checkFramebufferStatus(:gl_const.gl_framebuffer()) !=
          :gl_const.gl_framebuffer_complete() do
@@ -76,13 +70,10 @@ defmodule Breakout.Renderer.PostProcessor do
     end
 
     :gl.bindFramebuffer(:gl_const.gl_framebuffer(), fbo)
-    |> IO.inspect(label: "[fbo] bindFramebuffer")
 
     tex =
       Texture2D.new()
-      |> IO.inspect(label: "new tex")
       |> Texture2D.generate(width, height, 0)
-      |> IO.inspect(label: "generate tex")
 
     :gl.framebufferTexture2D(
       :gl_const.gl_framebuffer(),
@@ -91,7 +82,6 @@ defmodule Breakout.Renderer.PostProcessor do
       tex.id,
       0
     )
-    |> IO.inspect(label: "framebufferTexture2D")
 
     pp = %__MODULE__{pp | texture: tex, msfbo: msfbo, fbo: fbo, rbo: rbo}
 
@@ -102,11 +92,7 @@ defmodule Breakout.Renderer.PostProcessor do
 
     :gl.bindFramebuffer(:gl_const.gl_framebuffer(), 0)
 
-    IO.inspect("about to init_render_data")
-
     pp = init_render_data(pp)
-
-    IO.inspect("just did init_render_data")
 
     Shader.set(pp.shader, ~c"scene", 0, true)
     offset = 1.0 / 300.0
@@ -152,8 +138,6 @@ defmodule Breakout.Renderer.PostProcessor do
     ]
 
     Shader.set(pp.shader, ~c"blur_kernel", blur_kernel)
-
-    IO.inspect("huh")
 
     pp
   end

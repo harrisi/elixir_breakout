@@ -23,7 +23,6 @@ defmodule Breakout.Renderer.Sprite do
         rotate,
         color
       ) do
-    # shader = resources.shaders[shader] |> IO.inspect(label: "shader")
     texture = resources.textures[texture]
     Shader.use_shader(shader)
 

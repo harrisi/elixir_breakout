@@ -54,8 +54,6 @@ defmodule Breakout.Renderer.Texture2D do
         {:error, err} -> Logger.error(err: err, file: file)
       end
 
-    IO.inspect("before parse")
-
     {:ok, image} = ImageParser.parse(data)
 
     generate(tex, image[:IHDR].width, image[:IHDR].height, image[:IDAT])
@@ -106,7 +104,6 @@ defmodule Breakout.Renderer.Texture2D do
 
   @spec bind(texture :: t()) :: :ok
   def bind(texture) do
-    # IO.inspect(texture)
     :gl.bindTexture(:gl_const.gl_texture_2d(), texture.id)
     :ok
   end

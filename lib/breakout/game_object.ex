@@ -50,7 +50,6 @@ defmodule Breakout.GameObject do
         _renderer,
         state
       ) do
-    # IO.inspect(game_object, label: "game_object draw")
     Sprite.draw(state, name, position, size, rotation, color)
   end
 

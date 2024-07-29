@@ -43,35 +43,18 @@ defmodule Breakout.ParticleGenerator do
   def update(pg, dt, object, new_particles, offset) do
     generator =
       Enum.reduce(1..new_particles, pg, fn _, acc ->
-        # |> IO.inspect(label: "first unused")
         unused_particle = first_unused_particle(acc)
         respawn_particle(acc, unused_particle, object, offset)
       end)
-
-    # # generator =
-    # %__MODULE__{pg |
-    #   particles: Enum.map(pg.particles, &(update_particle(&1, dt)))
-    # }
 
     updated_particles =
       Enum.map(generator.particles, fn particle ->
         update_particle(particle, dt)
       end)
 
-    # generator =
-    #   Enum.reduce(0..(generator.amount - 1)//1, generator, fn i, acc ->
-    #     particle = Enum.at(acc.particles, i)
-    #     updated_particle = update_particle(particle, dt)
-    #     updated_particles = List.update_at(acc.particles, i, fn _ -> updated_particle end)
-    #     %__MODULE__{acc |
-    #       particles: updated_particles
-    #     }
-    #   end)
-
     %{generator | particles: updated_particles}
   end
 
-  # huh.. what
   def update_particle(%Particle{} = particle, dt) do
     life = particle.life - 0.001 * dt
 
@@ -170,7 +153,6 @@ defmodule Breakout.ParticleGenerator do
   end
 
   defp first_unused_particle(%__MODULE__{particles: particles}) do
-    # IO.inspect(particles)
     Enum.find_index(particles, fn p -> p.life <= 0 end) || 0
   end
 

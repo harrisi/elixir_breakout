@@ -89,8 +89,6 @@ defmodule Breakout.Game do
           )
     }
 
-    IO.inspect("just made new generator")
-
     state = %Breakout.State{state | sprite_renderer: sprite_renderer}
 
     state =
@@ -99,7 +97,6 @@ defmodule Breakout.Game do
         Texture2D.load("priv/textures/awesomeface.png", true)
       )
 
-    # |> IO.inspect(label: "face")
     # |> ResourceManager.put_texture(:face)
 
     state =
@@ -188,15 +185,11 @@ defmodule Breakout.Game do
 
     state = %Breakout.State{state | background_texture: background}
 
-    IO.inspect("about to make postprocessor")
-
     pp_shader =
       Shader.init(
         "priv/shaders/post_processor/vertex.vs",
         "priv/shaders/post_processor/fragment.fs"
       )
-
-    IO.inspect("here?", label: "before new")
 
     {scaled_width, scaled_height} =
       Vec2.new(@screen_width, @screen_height)
@@ -204,11 +197,7 @@ defmodule Breakout.Game do
 
     post_processor = PostProcessor.new(pp_shader, trunc(scaled_width), trunc(scaled_height))
 
-    IO.inspect("here?", label: "after new")
-
     state = %Breakout.State{state | post_processor: post_processor}
-
-    IO.inspect("made postprocessor")
 
     send(self(), :loop)
 
@@ -221,7 +210,6 @@ defmodule Breakout.Game do
 
     {updated_bricks, new_state} =
       Enum.map_reduce(cur_level.bricks, state, fn box, acc ->
-        # {ball_acc, shake_time_acc, shake_acc, maybe_power_ups_acc} = acc
         unless box.destroyed do
           {collided, dir, diff} = GameObject.check_collision(acc.ball, box)
 
@@ -231,7 +219,6 @@ defmodule Breakout.Game do
                 new_box = %{box | destroyed: true}
                 new_state = spawn_power_ups(acc, new_box)
 
-                # new_state = %{new_state | post_processor: %{new_state.post_processor | shake: true}}
                 {new_box, new_state}
               else
                 new_state = %{
@@ -287,20 +274,6 @@ defmodule Breakout.Game do
         end
       end)
 
-    # for %PowerUp{game_object: %GameObject{} = _} = power_up <- state.power_ups do
-    #   unless power_up.game_object.destroyed do
-    #     power_up = put_in(power_up.game_object.destroyed, (power_up.game_object.position |> elem(1)) >= @screen_height)
-
-    #     if GameObject.check_collision(state.player, power_up.game_object) do
-    #       activate_power_up(state, power_up)
-    #       destroyed = true
-    #       activated = true
-    #     else
-    #       power_up
-    #     end
-    #   end
-    # end
-
     {paddle_collision, _, _} = GameObject.check_collision(new_state.ball, state.player)
 
     ball =
@@ -341,12 +314,6 @@ defmodule Breakout.Game do
         new_state.ball
       end
 
-    # pp = %PostProcessor{
-    #   state.post_processor |
-    #   shake: new_state.post_processor.shake,
-    # }
-
-    # , post_processor: pp}
     %State{new_state | levels: put_elem(state.levels, state.level, level), ball: ball}
   end
 
@@ -460,7 +427,6 @@ defmodule Breakout.Game do
   @impl :wx_object
   def handle_cast(request, state) do
     IO.inspect(request, label: "handle_cast")
-    IO.inspect("handle_cast")
     {:noreply, state}
   end
 
@@ -505,7 +471,6 @@ defmodule Breakout.Game do
 
   @impl :wx_object
   def handle_info({:update, dt}, %State{} = state) do
-    # update game state
     ball = BallObject.move(state.ball, dt, @screen_width)
 
     state = put_in(state.ball, ball)
@@ -705,7 +670,6 @@ defmodule Breakout.Game do
 
   @impl :wx_object
   def handle_info(info, state) do
-    IO.inspect("handle_info")
     Logger.debug(info: info, state: state)
 
     {:noreply, state}
@@ -798,12 +762,6 @@ defmodule Breakout.Game do
       :speed ->
         update_in(state.ball.game_object.velocity, &Vec2.scale(&1, 1.2))
 
-      # %State{
-      #   state
-      #   | ball: %BallObject{state.ball | game_object: %GameObject{velocity: Vec2.scale(state.ball.game_object.velocity, 1.2)}}
-      # }
-      # |> IO.inspect(label: "state, activate")
-
       :sticky ->
         %State{
           state
@@ -872,13 +830,10 @@ defmodule Breakout.Game do
 
           acc = put_in(acc.power_ups, updated)
 
-          # dbg(acc.power_ups)
-
           unless power_up.activated do
             case power_up.type do
               :sticky ->
                 unless is_other_power_up_active(acc.power_ups, :sticky) do
-                  # dbg()
                   acc = put_in(acc.ball.sticky, false)
                   put_in(acc.player.color, Vec3.new(1, 1, 1))
                 else
@@ -910,29 +865,6 @@ defmodule Breakout.Game do
               _ ->
                 acc
             end
-
-            # unless is_other_power_up_active(acc.power_ups, power_up.type) do
-            #   case power_up.type do
-            #     :sticky ->
-            #       acc = put_in(acc.ball.sticky, false)
-            #       put_in(acc.player.color, Vec3.new(1, 1, 1))
-
-            #     :passthrough ->
-            #       acc = put_in(acc.ball.passthrough, false)
-            #       put_in(acc.ball.game_object.color, Vec3.new(1, 1, 1))
-
-            #     :confuse ->
-            #       put_in(acc.post_processor.confuse, false)
-
-            #     :chaos ->
-            #       put_in(acc.post_processor.chaos, false)
-
-            #     _ ->
-            #       IO.inspect("some other power up?")
-            #   end
-            # else
-            #   acc
-            # end
           else
             acc
           end
@@ -944,40 +876,14 @@ defmodule Breakout.Game do
       end)
 
     update_in(state.power_ups, fn el ->
-      # IO.inspect(el)
       Enum.reject(el, fn %PowerUp{game_object: %GameObject{}} = power_up ->
         power_up.game_object.destroyed and not power_up.activated
       end)
-
-      # Enum.filter(el, fn %PowerUp{game_object: %GameObject{}} = power_up ->
-      #   power_up.activated or not power_up.game_object.destroyed
-      # end)
     end)
-
-    # for %PowerUp{game_object: %GameObject{}} = power_up <- state.power_ups do
-    #   power_up =
-    #     power_up.game_object.position
-    #     |> update_in(&(Vec2.add(&1, Vec2.scale(power_up.game_object.velocity, dt / 1_000))))
-
-    #   _power_up =
-    #     if power_up.activated do
-    #       _power_up = update_in(power_up.duration, &(&1 - dt))
-    #       # case power_up.type do
-    #       #   :sticky ->
-    #       #     unless is_other_power_up_active(state.power_ups, :sticky) do
-
-    #       #     end
-    #       # end
-    #     else
-    #       power_up
-    #     end
-    # end
   end
 
   def is_other_power_up_active(power_ups, type) do
     power_ups
     |> Enum.any?(&(&1.activated and &1.type == type))
-
-    # |> dbg()
   end
 end

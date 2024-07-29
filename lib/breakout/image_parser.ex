@@ -1,13 +1,10 @@
 defmodule Breakout.ImageParser do
   def parse(data) do
-    IO.inspect("about to parse in parse")
     res = do_parse(data, %{})
     {:ok, res}
   end
 
   defp do_parse(<<0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, rest::binary>>, acc) do
-    IO.inspect("in png header")
-
     do_png_parse(rest, acc)
     |> decompress_png()
     |> reconstruct_png()
@@ -128,7 +125,6 @@ defmodule Breakout.ImageParser do
     my_crc = :erlang.crc32(<<type::32, data::unit(8)-size(len)>>)
 
     unless my_crc == crc do
-      IO.inspect("invalid crc")
       raise "Invalid crc"
     end
 
@@ -149,8 +145,6 @@ defmodule Breakout.ImageParser do
          <<width::8*4, height::8*4, depth::8, type::8, compression::8, filter::8, interlace::8>> =
            _data
        ) do
-    IO.inspect({width, height, depth, type, compression, filter, interlace})
-
     {:IHDR,
      %{
        width: width,
