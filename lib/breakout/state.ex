@@ -34,10 +34,11 @@ defmodule Breakout.State do
           elapsed: float(),
           start: float(),
           shake_time: float(),
-          power_ups: [PowerUp.t()]
+          power_ups: [PowerUp.t()],
+          font: :wxFont.wxFont(),
+          brush: :wxBrush.wxBrush(),
         }
 
-  @enforce_keys [:power_ups, :ball]
   defstruct [
     # :active | :menu | :win
     game_state: :active,
@@ -60,6 +61,8 @@ defmodule Breakout.State do
     elapsed: 0.0,
     start: 0.0,
     shake_time: 0.0,
-    power_ups: []
+    power_ups: [],
+    font: nil,
+    brush: nil,
   ]
 end

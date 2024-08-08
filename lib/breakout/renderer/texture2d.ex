@@ -37,6 +37,20 @@ defmodule Breakout.Renderer.Texture2D do
     }
   end
 
+  def load_gray(file) do
+    tex = new()
+    tex = %__MODULE__{tex | internal_format: :gl_const.gl_luminance, image_format: :gl_const.gl_luminance}
+
+    data = case File.read(file) do
+      {:ok, data} -> data
+      {:error, err} -> Logger.error(err: err, file: file)
+    end
+
+    {:ok, image} = ImageParser.parse(data)
+
+    generate(tex, image[:IHDR].width, image[:IHDR].height, image[:IDAT])
+  end
+
   def load(file, alpha) do
     tex = new()
 

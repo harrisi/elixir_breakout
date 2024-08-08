@@ -40,6 +40,7 @@ gl_texture_mag_filter() -> ?GL_TEXTURE_MAG_FILTER.
 gl_rgb() -> ?GL_RGB.
 gl_rgba() -> ?GL_RGBA.
 gl_multisample() -> ?GL_MULTISAMPLE.
+gl_luminance() -> ?GL_LUMINANCE.
 
 gl_texture0() -> ?GL_TEXTURE0.
 
@@ -66,3 +67,7 @@ gl_color_attachment0() -> ?GL_COLOR_ATTACHMENT0.
 gl_framebuffer_complete() -> ?GL_FRAMEBUFFER_COMPLETE.
 gl_read_framebuffer() -> ?GL_READ_FRAMEBUFFER.
 gl_draw_framebuffer() -> ?GL_DRAW_FRAMEBUFFER.
+
+gl_texture_env() -> ?GL_TEXTURE_ENV.
+gl_texture_env_mode() -> ?GL_TEXTURE_ENV_MODE.
+gl_replace() -> ?GL_REPLACE.

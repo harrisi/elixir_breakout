@@ -43,6 +43,14 @@ defmodule Breakout.Game do
 
     OpenGL.init()
 
+    # graphics_context = :wxGraphicsRenderer.createContext(:wxGraphicsRenderer.getDefaultRenderer(), window.frame)
+
+    # fixed_font = :wxFont.new(10, :wx_const.wx_fontfamily_teletype, :wx_const.wx_normal, :wx_const.wx_normal)
+    # :wxGraphicsContext.setFont(graphics_context, fixed_font)
+
+    font = :wxFont.new(32, :wx_const.wx_fontfamily_teletype, :wx_const.wx_fontstyle_normal, :wx_const.wx_fontweight_bold)
+    brush = :wxBrush.new({0, 0, 0})
+
     state = %State{
       t: :erlang.monotonic_time(:millisecond),
       start: :erlang.monotonic_time(),
@@ -51,8 +59,14 @@ defmodule Breakout.Game do
       width: @screen_width,
       height: @screen_height,
       power_ups: [],
-      ball: BallObject.new()
+      ball: BallObject.new(),
+      font: font,
+      brush: brush,
     }
+
+    string_texture = load_texture_by_string(font, brush, {40, 40, 40}, "text from wxFont", false)
+
+    state = put_in(state.resources.textures[:string], string_texture)
 
     projection = Mat4.ortho(0.0, state.width + 0.0, state.height + 0.0, 0.0, -1.0, 1.0)
 
@@ -96,6 +110,10 @@ defmodule Breakout.Game do
         state.resources.textures[:face],
         Texture2D.load("priv/textures/awesomeface.png", true)
       )
+
+    state = put_in(state.resources.textures[:ascii],
+      Texture2D.load("priv/textures/ascii_rgb.png", false)
+    )
 
     # |> ResourceManager.put_texture(:face)
 
@@ -209,22 +227,22 @@ defmodule Breakout.Game do
     cur_level = state.levels |> elem(state.level)
 
     {updated_bricks, new_state} =
-      Enum.map_reduce(cur_level.bricks, state, fn box, acc ->
+      Enum.map_reduce(cur_level.bricks, state, fn %GameObject{} = box, acc ->
         unless box.destroyed do
           {collided, dir, diff} = GameObject.check_collision(acc.ball, box)
 
           if collided do
             {box, new_state} =
               if not box.is_solid do
-                new_box = %{box | destroyed: true}
+                new_box = %GameObject{box | destroyed: true}
                 new_state = spawn_power_ups(acc, new_box)
 
                 {new_box, new_state}
               else
-                new_state = %{
+                new_state = %State{
                   acc
                   | shake_time: 0.05,
-                    post_processor: %{acc.post_processor | shake: true}
+                    post_processor: %PostProcessor{acc.post_processor | shake: true}
                 }
 
                 {box, new_state}
@@ -238,7 +256,7 @@ defmodule Breakout.Game do
                 new_state.ball
               end
 
-            new_state = %{new_state | ball: updated_ball}
+            new_state = %State{new_state | ball: updated_ball}
             {box, new_state}
           else
             {box, acc}
@@ -520,6 +538,13 @@ defmodule Breakout.Game do
         {state.shake_time, state.post_processor}
       end
 
+      t = :erlang.system_time() / 1_000_000_000
+      r = 127.5 * (1 + :math.sin(t))
+      g = 127.5 * (1 + :math.sin(t + 2 * :math.pi / 3))
+      b = 127.5 * (1 + :math.sin(t + 4 * :math.pi / 3))
+
+      state = put_in(state.resources.textures[:string], load_texture_by_string(state.font, state.brush, {round(r), round(g), round(b)}, "#{Time.utc_now |> Time.truncate(:second)}", false))
+
     {:noreply, %State{state | shake_time: shake_time, post_processor: pp}}
   end
 
@@ -665,6 +690,15 @@ defmodule Breakout.Game do
 
         PostProcessor.end_render(state.post_processor)
         PostProcessor.render(state.post_processor, state.elapsed)
+
+        Sprite.draw(
+          state,
+          :string,
+          Vec2.new(0, 0),
+          Vec2.new(300, 100),
+          0,
+          Vec3.new(1, 1, 1)
+        )
       end
 
       :wxGLCanvas.swapBuffers(state.window.canvas)
@@ -762,6 +796,7 @@ defmodule Breakout.Game do
     end
   end
 
+  @spec activate_power_up(state :: State.t(), power_up :: PowerUp.t()) :: State.t()
   def activate_power_up(%State{} = state, %PowerUp{} = power_up) do
     case power_up.type do
       :speed ->
@@ -808,6 +843,8 @@ defmodule Breakout.Game do
         else
           state
         end
+      _ ->
+        state
     end
   end
 
@@ -887,8 +924,95 @@ defmodule Breakout.Game do
     end)
   end
 
-  def is_other_power_up_active(power_ups, type) do
+  defp is_other_power_up_active(power_ups, type) do
     power_ups
     |> Enum.any?(&(&1.activated and &1.type == type))
   end
+
+  # This is taken from lib/wx/examples/demo/ex_gl.erl, with the following comment:
+  # %% This algorithm (based on http://d0t.dbclan.de/snippets/gltext.html)
+  # %% prints a string to a bitmap and loads that onto an opengl texture.
+  # %% Comments for the createTexture function:
+  # %%
+  # %%    "Creates a texture from the settings saved in TextElement, to be
+  # %%     able to use normal system fonts conviently a wx.MemoryDC is
+  # %%     used to draw on a wx.Bitmap. As wxwidgets device contexts don't
+  # %%     support alpha at all it is necessary to apply a little hack to
+  # %%     preserve antialiasing without sticking to a fixed background
+  # %%     color:
+  # %%
+  # %%     We draw the bmp in b/w mode so we can use its data as a alpha
+  # %%     channel for a solid color bitmap which after GL_ALPHA_TEST and
+  # %%     GL_BLEND will show a nicely antialiased text on any surface.
+  # %%
+  # %%     To access the raw pixel data the bmp gets converted to a
+  # %%     wx.Image. Now we just have to merge our foreground color with
+  # %%     the alpha data we just created and push it all into a OpenGL
+  # %%     texture and we are DONE *inhalesdelpy*"
+
+  defp load_texture_by_string(font, brush, color, string, flip) do
+    # this seems small?
+    tmp_bmp = :wxBitmap.new(200, 200)
+    tmp = :wxMemoryDC.new(tmp_bmp)
+    :wxMemoryDC.setFont(tmp, font)
+    {str_w, str_h} = :wxDC.getTextExtent(tmp, string)
+    :wxMemoryDC.destroy(tmp)
+    :wxBitmap.destroy(tmp_bmp)
+
+    w = get_power_of_two_roof(str_w)
+    h = get_power_of_two_roof(str_h)
+
+    bmp = :wxBitmap.new(w, h)
+    dc = :wxMemoryDC.new(bmp)
+    :wxMemoryDC.setFont(dc, font)
+    :wxMemoryDC.setBackground(dc, brush)
+    :wxMemoryDC.clear(dc)
+    :wxMemoryDC.setTextForeground(dc, {255, 255, 255})
+    :wxMemoryDC.drawText(dc, string, {0, 0})
+
+    img_0 = :wxBitmap.convertToImage(bmp)
+    img = case flip do
+      true ->
+        img = :wxImage.mirror(img_0, horizontally: false)
+        :wxImage.destroy(img_0)
+        img
+      false ->
+        img_0
+    end
+
+    alpha = :wxImage.getData(img)
+    data = colourize_image(alpha, color)
+    :wxImage.destroy(img)
+    :wxBitmap.destroy(bmp)
+    :wxMemoryDC.destroy(dc)
+
+    [tid] = :gl.genTextures(1)
+    :gl.bindTexture(:gl_const.gl_texture_2d, tid)
+    :gl.texParameteri(:gl_const.gl_texture_2d, :gl_const.gl_texture_mag_filter, :gl_const.gl_linear)
+    :gl.texParameteri(:gl_const.gl_texture_2d, :gl_const.gl_texture_min_filter, :gl_const.gl_linear)
+    :gl.texEnvi(:gl_const.gl_texture_env, :gl_const.gl_texture_env_mode, :gl_const.gl_replace)
+    :gl.texImage2D(:gl_const.gl_texture_2d, 0, :gl_const.gl_rgba, w, h, 0, :gl_const.gl_rgba, :gl_const.gl_unsigned_byte, data)
+
+    %Texture2D{
+      id: tid,
+      width: w,
+      height: h,
+      internal_format: :gl_const.gl_rgba,
+      image_format: :gl_const.gl_rgba,
+      wrap_s: :gl_const.gl_repeat,
+      wrap_t: :gl_const.gl_repeat,
+      filter_min: :gl_const.gl_linear,
+      filter_max: :gl_const.gl_linear
+    }
+  end
+
+  defp colourize_image(alpha, {r, g, b}) do
+    for <<a::8, _::8, _::8 <- alpha>>, into: <<>> do
+      <<r::8, g::8, b::8, a::8>>
+    end
+  end
+
+  defp get_power_of_two_roof(x), do: get_power_of_two_roof_2(1, x)
+  defp get_power_of_two_roof_2(n, x) when n >= x, do: n
+  defp get_power_of_two_roof_2(n, x), do: get_power_of_two_roof_2(n * 2, x)
 end

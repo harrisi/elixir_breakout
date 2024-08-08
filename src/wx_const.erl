@@ -30,3 +30,9 @@ wx_gl_samples() -> ?WX_GL_SAMPLES.
 wx_null_cursor() -> ?wxNullCursor.
 wx_cursor_blank() -> ?wxCURSOR_BLANK.
 wx_cursor_cross() -> ?wxCURSOR_CROSS.
+
+wx_fontfamily_default() -> ?wxFONTFAMILY_DEFAULT.
+wx_fontfamily_teletype() -> ?wxFONTFAMILY_TELETYPE.
+wx_normal() -> ?wxNORMAL.
+wx_fontstyle_normal() -> ?wxFONTSTYLE_NORMAL.
+wx_fontweight_bold() -> ?wxFONTWEIGHT_BOLD.
