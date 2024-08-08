@@ -16,6 +16,7 @@ defmodule Breakout.State do
   @type t :: %__MODULE__{
           game_state: game_state(),
           keys: MapSet.t(integer()),
+          keys_processed: MapSet.t(integer()),
           width: pos_integer(),
           height: pos_integer(),
           window: :wxWindow.wxWindow() | nil,
@@ -37,7 +38,7 @@ defmodule Breakout.State do
           power_ups: [PowerUp.t()],
           font: :wxFont.wxFont(),
           brush: :wxBrush.wxBrush(),
-          lives: non_neg_integer(),
+          lives: pos_integer(),
           menu_string_size: {non_neg_integer(), non_neg_integer()},
         }
 
@@ -45,6 +46,7 @@ defmodule Breakout.State do
     # :active | :menu | :win
     game_state: :active,
     keys: MapSet.new(),
+    keys_processed: MapSet.new(),
     width: @game_width,
     height: @game_height,
     window: nil,

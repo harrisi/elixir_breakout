@@ -449,6 +449,7 @@ press w or s to select level
   @impl :wx_object
   def handle_cast({:key_up, key_code}, state) do
     state = %{state | keys: MapSet.delete(state.keys, key_code)}
+    state = %{state | keys_processed: MapSet.delete(state.keys_processed, key_code)}
 
     {:noreply, state}
   end
@@ -565,24 +566,26 @@ press w or s to select level
 
   @impl :wx_object
   def handle_info({:process_input, dt}, state) do
-    # TODO: this is useless, since it runs far too fast.
     state = if state.game_state == :menu do
-      state = if MapSet.member?(state.keys, 13) do
-        put_in(state.game_state, :active)
+      state = if MapSet.member?(state.keys, 13) and not MapSet.member?(state.keys_processed, 13) do
+        state = put_in(state.game_state, :active)
+        put_in(state.keys_processed, MapSet.put(state.keys_processed, 13))
       else
         state
       end
-      state = if MapSet.member?(state.keys, ?W) do
-        update_in(state.level, &(rem(&1 + 1, tuple_size(state.levels))))
+      state = if MapSet.member?(state.keys, ?W) and not MapSet.member?(state.keys_processed, ?W) do
+        state = update_in(state.level, &(rem(&1 + 1, tuple_size(state.levels))))
+        put_in(state.keys_processed, MapSet.put(state.keys_processed, ?W))
       else
         state
       end
-      if MapSet.member?(state.keys, ?S) do
-        if state.level > 0 do
+      if MapSet.member?(state.keys, ?S) and not MapSet.member?(state.keys_processed, ?S) do
+        state = if state.level > 0 do
           update_in(state.level, &(&1 - 1))
         else
           put_in(state.level, 3)
         end
+        put_in(state.keys_processed, MapSet.put(state.keys_processed, ?S))
       else
         state
       end
