@@ -43,11 +43,6 @@ defmodule Breakout.Game do
 
     OpenGL.init()
 
-    # graphics_context = :wxGraphicsRenderer.createContext(:wxGraphicsRenderer.getDefaultRenderer(), window.frame)
-
-    # fixed_font = :wxFont.new(10, :wx_const.wx_fontfamily_teletype, :wx_const.wx_normal, :wx_const.wx_normal)
-    # :wxGraphicsContext.setFont(graphics_context, fixed_font)
-
     font = :wxFont.new(32, :wx_const.wx_fontfamily_teletype, :wx_const.wx_fontstyle_normal, :wx_const.wx_fontweight_normal)
     brush = :wxBrush.new({0, 0, 0})
 
