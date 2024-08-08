@@ -222,7 +222,7 @@ defmodule Breakout.ImageParser do
 
     uncompressed = :zlib.uncompress(compressed_profile)
 
-    File.write("uncompressed", uncompressed)
+    # File.write("uncompressed", uncompressed)
     <<header::binary-size(128), tag_table::bitstring>> = uncompressed
 
     <<
@@ -383,17 +383,17 @@ defmodule Breakout.ImageParser do
   end
 
   defp parse_tag_table(tag_table) do
-    File.write("tag_table_raw", tag_table)
+    # File.write("tag_table_raw", tag_table)
     # <<count::32, tag_table::binary-unit(8)-size(12*count), tagged_data::bitstring>> = tag_table
     <<count::32, tag_table::bitstring>> = tag_table
 
     table = do_parse_tag_table(tag_table, [], count)
 
-    File.write("tag_table", tag_table)
+    # File.write("tag_table", tag_table)
 
     <<_tag_table::binary-size(count * 12), data::binary>> = tag_table
 
-    File.write("data", data)
+    # File.write("data", data)
 
     first_offset = table |> hd() |> elem(1)
     table = Enum.map(table, fn {sig, offset, size} ->

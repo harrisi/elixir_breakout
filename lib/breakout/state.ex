@@ -37,6 +37,8 @@ defmodule Breakout.State do
           power_ups: [PowerUp.t()],
           font: :wxFont.wxFont(),
           brush: :wxBrush.wxBrush(),
+          lives: non_neg_integer(),
+          menu_string_size: {non_neg_integer(), non_neg_integer()},
         }
 
   defstruct [
@@ -64,5 +66,7 @@ defmodule Breakout.State do
     power_ups: [],
     font: nil,
     brush: nil,
+    lives: 3,
+    menu_string_size: {200, 200},
   ]
 end

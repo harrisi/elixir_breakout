@@ -48,7 +48,7 @@ defmodule Breakout.Game do
     # fixed_font = :wxFont.new(10, :wx_const.wx_fontfamily_teletype, :wx_const.wx_normal, :wx_const.wx_normal)
     # :wxGraphicsContext.setFont(graphics_context, fixed_font)
 
-    font = :wxFont.new(32, :wx_const.wx_fontfamily_teletype, :wx_const.wx_fontstyle_normal, :wx_const.wx_fontweight_bold)
+    font = :wxFont.new(32, :wx_const.wx_fontfamily_teletype, :wx_const.wx_fontstyle_normal, :wx_const.wx_fontweight_normal)
     brush = :wxBrush.new({0, 0, 0})
 
     state = %State{
@@ -64,9 +64,18 @@ defmodule Breakout.Game do
       brush: brush,
     }
 
-    string_texture = load_texture_by_string(font, brush, {40, 40, 40}, "text from wxFont", false)
+    menu_text = """
+    press enter to start
+press w or s to select level
+"""
 
-    state = put_in(state.resources.textures[:string], string_texture)
+    menu_font = :wxFont.new(60, :wx_const.wx_fontfamily_teletype, :wx_const.wx_fontstyle_normal, :wx_const.wx_fontweight_bold)
+
+    {menu_string_texture, menu_string_w, menu_string_h} = load_texture_by_string(menu_font, brush, {222, 222, 222}, menu_text, false)
+
+    state = put_in(state.menu_string_size, {menu_string_w, menu_string_h})
+
+    state = put_in(state.resources.textures[:menu_string], menu_string_texture)
 
     projection = Mat4.ortho(0.0, state.width + 0.0, state.height + 0.0, 0.0, -1.0, 1.0)
 
@@ -501,8 +510,14 @@ defmodule Breakout.Game do
 
     state =
       if ball_y >= @screen_height do
-        state
-        |> reset_level()
+        state = update_in(state.lives, &(&1 - 1))
+        if state.lives == 0 do
+          state = state
+            |> reset_level()
+          put_in(state.game_state, :menu)
+        else
+          state
+        end
         |> reset_player()
         |> reset_ball()
       else
@@ -538,18 +553,43 @@ defmodule Breakout.Game do
         {state.shake_time, state.post_processor}
       end
 
-      t = :erlang.system_time() / 1_000_000_000
-      r = 127.5 * (1 + :math.sin(t))
-      g = 127.5 * (1 + :math.sin(t + 2 * :math.pi / 3))
-      b = 127.5 * (1 + :math.sin(t + 4 * :math.pi / 3))
+      # t = :erlang.system_time() / 1_000_000_000
+      # r = 127.5 * (1 + :math.sin(t))
+      # g = 127.5 * (1 + :math.sin(t + 2 * :math.pi / 3))
+      # b = 127.5 * (1 + :math.sin(t + 4 * :math.pi / 3))
 
-      state = put_in(state.resources.textures[:string], load_texture_by_string(state.font, state.brush, {round(r), round(g), round(b)}, "#{Time.utc_now |> Time.truncate(:second)}", false))
+      state = put_in(state.resources.textures[:string], load_texture_by_string(state.font, state.brush, {222, 222, 222}, "Lives: #{state.lives}", false) |> elem(0))
 
     {:noreply, %State{state | shake_time: shake_time, post_processor: pp}}
   end
 
   @impl :wx_object
   def handle_info({:process_input, dt}, state) do
+    # TODO: this is useless, since it runs far too fast.
+    state = if state.game_state == :menu do
+      state = if MapSet.member?(state.keys, 13) do
+        put_in(state.game_state, :active)
+      else
+        state
+      end
+      state = if MapSet.member?(state.keys, ?W) do
+        update_in(state.level, &(rem(&1 + 1, tuple_size(state.levels))))
+      else
+        state
+      end
+      if MapSet.member?(state.keys, ?S) do
+        if state.level > 0 do
+          update_in(state.level, &(&1 - 1))
+        else
+          put_in(state.level, 3)
+        end
+      else
+        state
+      end
+    else
+      state
+    end
+
     state =
       if state.game_state == :active do
         velocity = state.player.velocity * dt / 1_000
@@ -639,6 +679,8 @@ defmodule Breakout.Game do
           end
 
         state
+      else
+        state
       end
 
     state =
@@ -664,7 +706,7 @@ defmodule Breakout.Game do
       :gl.clearColor(0.0, 0.0, 0.0, 1.0)
       :gl.clear(:gl_const.gl_color_buffer_bit())
 
-      if state.game_state == :active do
+      if state.game_state in [:active, :menu] do
         PostProcessor.begin_render(state.post_processor)
 
         Sprite.draw(
@@ -694,8 +736,21 @@ defmodule Breakout.Game do
         Sprite.draw(
           state,
           :string,
-          Vec2.new(0, 0),
-          Vec2.new(300, 100),
+          Vec2.new(10, 0),
+          Vec2.new(200, 100),
+          0,
+          Vec3.new(1, 1, 1)
+        )
+      end
+
+      if state.game_state == :menu do
+        {w, h} = state.menu_string_size
+        Sprite.draw(
+          state,
+          :menu_string,
+          # TODO: either I'm very tired, or this is.. weird.
+          Vec2.new((state.width - w / 2) / 2, state.height / 2 - h),
+          state.menu_string_size,
           0,
           Vec3.new(1, 1, 1)
         )
@@ -726,7 +781,8 @@ defmodule Breakout.Game do
         )
       )
 
-    put_in(state.levels, levels)
+    state = put_in(state.levels, levels)
+    put_in(state.lives, 3)
   end
 
   defp level_name(0), do: "one.lvl"
@@ -951,7 +1007,6 @@ defmodule Breakout.Game do
   # %%     texture and we are DONE *inhalesdelpy*"
 
   defp load_texture_by_string(font, brush, color, string, flip) do
-    # this seems small?
     tmp_bmp = :wxBitmap.new(200, 200)
     tmp = :wxMemoryDC.new(tmp_bmp)
     :wxMemoryDC.setFont(tmp, font)
@@ -993,7 +1048,7 @@ defmodule Breakout.Game do
     :gl.texEnvi(:gl_const.gl_texture_env, :gl_const.gl_texture_env_mode, :gl_const.gl_replace)
     :gl.texImage2D(:gl_const.gl_texture_2d, 0, :gl_const.gl_rgba, w, h, 0, :gl_const.gl_rgba, :gl_const.gl_unsigned_byte, data)
 
-    %Texture2D{
+    {%Texture2D{
       id: tid,
       width: w,
       height: h,
@@ -1003,7 +1058,7 @@ defmodule Breakout.Game do
       wrap_t: :gl_const.gl_repeat,
       filter_min: :gl_const.gl_linear,
       filter_max: :gl_const.gl_linear
-    }
+    }, str_w, str_h}
   end
 
   defp colourize_image(alpha, {r, g, b}) do

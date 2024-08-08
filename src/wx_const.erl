@@ -36,3 +36,4 @@ wx_fontfamily_teletype() -> ?wxFONTFAMILY_TELETYPE.
 wx_normal() -> ?wxNORMAL.
 wx_fontstyle_normal() -> ?wxFONTSTYLE_NORMAL.
 wx_fontweight_bold() -> ?wxFONTWEIGHT_BOLD.
+wx_fontweight_normal() -> ?wxFONTWEIGHT_NORMAL.
