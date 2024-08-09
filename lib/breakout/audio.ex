@@ -99,3 +99,59 @@ defmodule Breakout.Audio do
   #   Membrane.Pipeline.terminate(__MODULE__)
   # end
 end
+
+defmodule Breakout.Audio.SoundEffect do
+  use Membrane.Pipeline
+
+  def play(which) do
+    case which do
+      :block ->
+        {:ok, _sup, _pipe} =
+          Membrane.Pipeline.start(__MODULE__, "priv/audio/block.mp3")
+      :solid ->
+        {:ok, _sup, _pipe} =
+          Membrane.Pipeline.start(__MODULE__, "priv/audio/solid.mp3")
+      :paddle ->
+        {:ok, _sup, _pipe} =
+          Membrane.Pipeline.start(__MODULE__, "priv/audio/paddle.mp3")
+      :powerup ->
+        {:ok, _sup, _pipe} =
+          Membrane.Pipeline.start(__MODULE__, "priv/audio/powerup.mp3")
+      _ -> nil
+      end
+  end
+
+  def start(args) do
+    Membrane.Pipeline.start(__MODULE__, args, name: __MODULE__)
+  end
+
+  # This is taken from membraneframework/membrane_demo/simple_pipeline
+
+  @impl Membrane.Pipeline
+  def handle_init(_ctx, path_to_mp3) do
+    spec =
+      child(:file, %Membrane.File.Source{location: path_to_mp3})
+      |> child(:decoder, Membrane.MP3.MAD.Decoder)
+      |> child(:converter, %Membrane.FFmpeg.SWResample.Converter{
+        output_stream_format: %Membrane.RawAudio{
+          sample_format: :s16le,
+          sample_rate: 48_000,
+          channels: 2,
+        }
+      })
+      # |> child(%Breakout.Audio.LoopFilter{loops: :infinity})
+      |> child(:portaudio, Membrane.PortAudio.Sink)
+
+      {[spec: spec], %{}}
+  end
+
+  @impl Membrane.Pipeline
+  def handle_element_end_of_stream(:sink, :input, _ctx, state) do
+    {[terminate: :normal], state}
+  end
+
+  @impl Membrane.Pipeline
+  def handle_element_end_of_stream(_element, _pad, _ctx, state) do
+    {[], state}
+  end
+end

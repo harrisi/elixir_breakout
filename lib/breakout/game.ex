@@ -12,6 +12,7 @@ defmodule Breakout.Game do
   alias Renderer.{Texture2D, Sprite, Shader, Window, OpenGL}
   alias Breakout.Math
   alias Math.{Vec2, Vec3, Mat4}
+  alias Breakout.Audio.SoundEffect
 
   @behaviour :wx_object
 
@@ -240,6 +241,7 @@ press w or s to select level
               if not box.is_solid do
                 new_box = %GameObject{box | destroyed: true}
                 new_state = spawn_power_ups(acc, new_box)
+                SoundEffect.play(:block)
 
                 {new_box, new_state}
               else
@@ -248,6 +250,7 @@ press w or s to select level
                   | shake_time: 0.05,
                     post_processor: %PostProcessor{acc.post_processor | shake: true}
                 }
+                SoundEffect.play(:solid)
 
                 {box, new_state}
               end
@@ -288,6 +291,7 @@ press w or s to select level
             power_up = put_in(power_up.game_object.destroyed, true)
             power_up = put_in(power_up.activated, true)
             power_ups = List.update_at(acc.power_ups, index, fn _ -> power_up end)
+            SoundEffect.play(:powerup)
             put_in(acc.power_ups, power_ups)
           else
             power_ups = List.update_at(acc.power_ups, index, fn _ -> power_up end)
@@ -333,6 +337,9 @@ press w or s to select level
 
         {ball_vel_x, ball_vel_y} = ball.game_object.velocity
         ball = put_in(ball.game_object.velocity, {ball_vel_x, -1 * abs(ball_vel_y)})
+
+        SoundEffect.play(:paddle)
+
         put_in(ball.stuck, ball.sticky)
       else
         new_state.ball
