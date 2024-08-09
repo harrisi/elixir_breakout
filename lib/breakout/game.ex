@@ -12,6 +12,7 @@ defmodule Breakout.Game do
   alias Renderer.{Texture2D, Sprite, Shader, Window, OpenGL}
   alias Breakout.Math
   alias Math.{Vec2, Vec3, Mat4}
+  alias Breakout.Audio.SoundEffect
 
   @behaviour :wx_object
 
@@ -42,11 +43,6 @@ defmodule Breakout.Game do
     window = Window.init(@screen_width, @screen_height)
 
     OpenGL.init()
-
-    # graphics_context = :wxGraphicsRenderer.createContext(:wxGraphicsRenderer.getDefaultRenderer(), window.frame)
-
-    # fixed_font = :wxFont.new(10, :wx_const.wx_fontfamily_teletype, :wx_const.wx_normal, :wx_const.wx_normal)
-    # :wxGraphicsContext.setFont(graphics_context, fixed_font)
 
     font = :wxFont.new(32, :wx_const.wx_fontfamily_teletype, :wx_const.wx_fontstyle_normal, :wx_const.wx_fontweight_normal)
     brush = :wxBrush.new({0, 0, 0})
@@ -245,6 +241,7 @@ press w or s to select level
               if not box.is_solid do
                 new_box = %GameObject{box | destroyed: true}
                 new_state = spawn_power_ups(acc, new_box)
+                SoundEffect.play(:block)
 
                 {new_box, new_state}
               else
@@ -253,6 +250,7 @@ press w or s to select level
                   | shake_time: 0.05,
                     post_processor: %PostProcessor{acc.post_processor | shake: true}
                 }
+                SoundEffect.play(:solid)
 
                 {box, new_state}
               end
@@ -293,6 +291,7 @@ press w or s to select level
             power_up = put_in(power_up.game_object.destroyed, true)
             power_up = put_in(power_up.activated, true)
             power_ups = List.update_at(acc.power_ups, index, fn _ -> power_up end)
+            SoundEffect.play(:powerup)
             put_in(acc.power_ups, power_ups)
           else
             power_ups = List.update_at(acc.power_ups, index, fn _ -> power_up end)
@@ -338,6 +337,9 @@ press w or s to select level
 
         {ball_vel_x, ball_vel_y} = ball.game_object.velocity
         ball = put_in(ball.game_object.velocity, {ball_vel_x, -1 * abs(ball_vel_y)})
+
+        SoundEffect.play(:paddle)
+
         put_in(ball.stuck, ball.sticky)
       else
         new_state.ball

@@ -20,7 +20,8 @@ defmodule Breakout.Application do
       # opengl stuff easier.
 
       # Breakout.ResourceManager,
-      Breakout.Game
+      {Breakout.Audio, ["priv/audio/breakout.mp3"]},
+      Breakout.Game,
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
