@@ -8,4 +8,9 @@ defmodule Breakout.Util do
     list
     |> Enum.reduce(<<>>, fn el, acc -> acc <> <<el::unsigned-native-size(32)>> end)
   end
+
+  def to_priv(path) do
+    :code.priv_dir(:breakout)
+    |> Path.join(path)
+  end
 end

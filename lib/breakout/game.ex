@@ -76,7 +76,7 @@ press w or s to select level
     projection = Mat4.ortho(0.0, state.width + 0.0, state.height + 0.0, 0.0, -1.0, 1.0)
 
     sprite_shader =
-      Shader.init("priv/shaders/sprite/vertex.vs", "priv/shaders/sprite/fragment.fs")
+      Shader.init(Breakout.Util.to_priv("shaders/sprite/vertex.vs"), Breakout.Util.to_priv("shaders/sprite/fragment.fs"))
       |> Shader.use_shader()
       |> Shader.set(~c"image", 0)
       |> Shader.set(~c"projection", [projection |> Mat4.flatten()])
@@ -87,7 +87,7 @@ press w or s to select level
     sprite_renderer = Sprite.new(sprite_shader)
 
     particle_shader =
-      Shader.init("priv/shaders/particle/vertex.vs", "priv/shaders/particle/fragment.fs")
+      Shader.init(Breakout.Util.to_priv("shaders/particle/vertex.vs"), Breakout.Util.to_priv("shaders/particle/fragment.fs"))
       |> Shader.set(~c"projection", [projection |> Mat4.flatten()], true)
 
     state = put_in(state.resources.shaders[:particle], particle_shader)
@@ -95,7 +95,7 @@ press w or s to select level
     state =
       put_in(
         state.resources.textures[:particle],
-        Texture2D.load("priv/textures/particle.png", true)
+        Texture2D.load(Breakout.Util.to_priv("textures/particle.png"), true)
       )
 
     state = %{
@@ -113,11 +113,11 @@ press w or s to select level
     state =
       put_in(
         state.resources.textures[:face],
-        Texture2D.load("priv/textures/awesomeface.png", true)
+        Texture2D.load(Breakout.Util.to_priv("textures/awesomeface.png"), true)
       )
 
     state = put_in(state.resources.textures[:ascii],
-      Texture2D.load("priv/textures/ascii_rgb.png", false)
+      Texture2D.load(Breakout.Util.to_priv("textures/ascii_rgb.png"), false)
     )
 
     # |> ResourceManager.put_texture(:face)
@@ -125,13 +125,12 @@ press w or s to select level
     state =
       put_in(
         state.resources.textures[:background],
-        Texture2D.load("priv/textures/background.png", false)
+        Texture2D.load(Breakout.Util.to_priv("textures/background.png"), false)
       )
 
     state =
-      put_in(state.resources.textures[:block], Texture2D.load("priv/textures/block.png", false))
+      put_in(state.resources.textures[:block], Texture2D.load(Breakout.Util.to_priv("textures/block.png"), false))
 
-    # state = put_in(state.resources.textures[:speed], Texture2D.load("priv/textures/powerup_speed.png", true))
     power_up_textures =
       [
         :chaos,
@@ -142,7 +141,7 @@ press w or s to select level
         :sticky
       ]
       |> Enum.reduce(state.resources.textures, fn el, acc ->
-        put_in(acc[el], Texture2D.load("priv/textures/powerup_#{el}.png", true))
+        put_in(acc[el], Texture2D.load(Breakout.Util.to_priv("textures/powerup_#{el}.png"), true))
       end)
 
     state = %Breakout.State{
@@ -156,7 +155,7 @@ press w or s to select level
     state =
       put_in(
         state.resources.textures[:block_solid],
-        Texture2D.load("priv/textures/block_solid.png", false)
+        Texture2D.load(Breakout.Util.to_priv("textures/block_solid.png"), false)
       )
 
     # |> ResourceManager.put_texture(:block_solid)
@@ -164,16 +163,16 @@ press w or s to select level
     state = %Breakout.State{
       state
       | levels: {
-          GameLevel.load("priv/levels/one.lvl", @screen_width, @screen_height / 2),
-          GameLevel.load("priv/levels/two.lvl", @screen_width, @screen_height / 2),
-          GameLevel.load("priv/levels/three.lvl", @screen_width, @screen_height / 2),
-          GameLevel.load("priv/levels/four.lvl", @screen_width, @screen_height / 2)
+          GameLevel.load(Breakout.Util.to_priv("levels/one.lvl"), @screen_width, @screen_height / 2),
+          GameLevel.load(Breakout.Util.to_priv("levels/two.lvl"), @screen_width, @screen_height / 2),
+          GameLevel.load(Breakout.Util.to_priv("levels/three.lvl"), @screen_width, @screen_height / 2),
+          GameLevel.load(Breakout.Util.to_priv("levels/four.lvl"), @screen_width, @screen_height / 2)
         },
         level: 0
     }
 
     state =
-      put_in(state.resources.textures[:paddle], Texture2D.load("priv/textures/paddle.png", true))
+      put_in(state.resources.textures[:paddle], Texture2D.load(Breakout.Util.to_priv("textures/paddle.png"), true))
 
     # |> ResourceManager.put_texture(:paddle)
 
@@ -210,8 +209,8 @@ press w or s to select level
 
     pp_shader =
       Shader.init(
-        "priv/shaders/post_processor/vertex.vs",
-        "priv/shaders/post_processor/fragment.fs"
+        Breakout.Util.to_priv("shaders/post_processor/vertex.vs"),
+        Breakout.Util.to_priv("shaders/post_processor/fragment.fs")
       )
 
     {scaled_width, scaled_height} =
@@ -780,7 +779,7 @@ press w or s to select level
         state.levels,
         state.level,
         GameLevel.load(
-          "priv/levels/#{level_name(state.level)}",
+          Breakout.Util.to_priv("levels/#{level_name(state.level)}"),
           @screen_width,
           @screen_height / 2
         )

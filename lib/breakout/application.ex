@@ -20,7 +20,7 @@ defmodule Breakout.Application do
       # opengl stuff easier.
 
       # Breakout.ResourceManager,
-      {Breakout.Audio, ["priv/audio/breakout.mp3"]},
+      {Breakout.Audio, [Breakout.Util.to_priv("audio/breakout.mp3")]},
       Breakout.Game,
     ]
 

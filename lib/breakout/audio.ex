@@ -107,16 +107,16 @@ defmodule Breakout.Audio.SoundEffect do
     case which do
       :block ->
         {:ok, _sup, _pipe} =
-          Membrane.Pipeline.start(__MODULE__, "priv/audio/block.mp3")
+          Membrane.Pipeline.start(__MODULE__, Breakout.Util.to_priv("audio/block.mp3"))
       :solid ->
         {:ok, _sup, _pipe} =
-          Membrane.Pipeline.start(__MODULE__, "priv/audio/solid.mp3")
+          Membrane.Pipeline.start(__MODULE__, Breakout.Util.to_priv("audio/solid.mp3"))
       :paddle ->
         {:ok, _sup, _pipe} =
-          Membrane.Pipeline.start(__MODULE__, "priv/audio/paddle.mp3")
+          Membrane.Pipeline.start(__MODULE__, Breakout.Util.to_priv("audio/paddle.mp3"))
       :powerup ->
         {:ok, _sup, _pipe} =
-          Membrane.Pipeline.start(__MODULE__, "priv/audio/powerup.mp3")
+          Membrane.Pipeline.start(__MODULE__, Breakout.Util.to_priv("audio/powerup.mp3"))
       _ -> nil
       end
   end
